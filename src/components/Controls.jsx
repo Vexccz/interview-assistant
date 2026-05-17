@@ -14,6 +14,7 @@ function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMini
   return (
     <div className="controls-bar" style={{ WebkitAppRegion: 'drag' }}>
       <div className="controls-left" style={{ WebkitAppRegion: 'no-drag' }}>
+        <span className="app-title">InterviewAI</span>
         <button
           className={`btn-toggle ${isListening ? 'active' : ''}`}
           onClick={onToggle}
@@ -26,11 +27,11 @@ function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMini
             {getModeLabel()}
           </span>
         )}
+      </div>
+      <div className="controls-right" style={{ WebkitAppRegion: 'no-drag' }}>
         <button className="btn-icon" onClick={onClear} title={t('clear', language)}>
           🗑
         </button>
-      </div>
-      <div className="controls-right" style={{ WebkitAppRegion: 'no-drag' }}>
         <button className="btn-icon" onClick={onQuestionBank} title={t('questionBank', language)}>
           📋
         </button>
