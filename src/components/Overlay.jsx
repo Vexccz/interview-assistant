@@ -8,7 +8,7 @@ const cardVariants = {
   exit: { opacity: 0, transition: { duration: 0.15 } }
 };
 
-function Overlay({ transcript, partialTranscript, response, isListening, isGenerating, questionType, confidence, questionTimer, mode, language, fontSize }) {
+function Overlay({ transcript, partialTranscript, response, isListening, isGenerating, questionType, confidence, questionTimer, mode, language, fontSize, currentSpeaker, answerScore }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -27,13 +27,58 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Detect if response contains code (technical question)
+  const renderResponse = (text) => {
+    if (!text) return null;
+
+    // Simple code block detection: lines starting with spaces/tabs or containing common code patterns
+    const codePatterns = /```[\s\S]*?```|`[^`]+`/g;
+    const hasCodeBlocks = codePatterns.test(text);
+
+    if (hasCodeBlocks) {
+      // Split by code blocks and render with syntax highlighting
+      const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/g);
+      return parts.map((part, i) => {
+        if (part.startsWith('```')) {
+          const code = part.replace(/```\w*\n?/, '').replace(/```$/, '');
+          return (
+            <pre key={i} className="code-block">
+              <code>{code}</code>
+            </pre>
+          );
+        } else if (part.startsWith('`') && part.endsWith('`')) {
+          return <code key={i} className="inline-code">{part.slice(1, -1)}</code>;
+        } else {
+          return part.split('\n').map((line, j) => (
+            <span key={`${i}-${j}`} className="response-text" style={{ display: 'block' }}>
+              {line}
+            </span>
+          ));
+        }
+      });
+    }
+
+    return text.split('\n').map((line, i) => (
+      <span key={i} className="response-text" style={{ display: 'block' }}>
+        {line}
+      </span>
+    ));
+  };
+
   return (
     <div className="overlay" style={{ fontSize: `${fontSize}px` }}>
       {/* Question section */}
       <div className="section">
         <div className="section-header">
-          <span className="section-label">{t('interviewer', language)}</span>
+          <span className="section-label">
+            {currentSpeaker === 'user' ? '🗣️ ' + t('you', language) : '🎤 ' + t('interviewer', language)}
+          </span>
           <div className="section-header-right">
+            {currentSpeaker && (
+              <span className={`badge badge-speaker badge-speaker-${currentSpeaker}`}>
+                {currentSpeaker === 'user' ? 'You' : 'Interviewer'}
+              </span>
+            )}
             {questionType && (
               <span className="badge badge-type">{questionType.label}</span>
             )}
@@ -78,6 +123,11 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
         <div className="section-header">
           <span className="section-label">{t('suggestedResponse', language)}</span>
           <div className="section-header-right">
+            {answerScore && (
+              <span className={`badge badge-score badge-score-${answerScore.score >= 7 ? 'high' : answerScore.score >= 5 ? 'medium' : 'low'}`}>
+                {answerScore.score}/10
+              </span>
+            )}
             {confidence && (
               <span className={`badge badge-confidence badge-${confidence.level}`}>
                 {confidence.label}
@@ -104,15 +154,7 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2 }}
               >
-                {response.split('\n').map((line, i) => (
-                  <span
-                    key={i}
-                    className="response-text"
-                    style={{ display: 'block' }}
-                  >
-                    {line}
-                  </span>
-                ))}
+                {renderResponse(response)}
               </motion.div>
             ) : (
               <motion.span
@@ -127,6 +169,13 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
             )}
           </AnimatePresence>
         </div>
+
+        {/* Answer score feedback */}
+        {answerScore && answerScore.feedback && !isGenerating && (
+          <div className="answer-feedback">
+            <span className="feedback-text">💡 {answerScore.feedback}</span>
+          </div>
+        )}
       </div>
 
       {/* Paused banner */}

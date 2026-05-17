@@ -1,13 +1,33 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { t } from '../services/i18n';
 
-function Analytics({ analytics, onClose, language }) {
+function Analytics({ analytics, audioRecorder, onClose, language }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    if (audioRecorder) {
+      const url = audioRecorder.getObjectURL();
+      if (url) setAudioUrl(url);
+    }
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioRecorder]);
+
   const formatDuration = (seconds) => {
     if (!seconds) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSaveRecording = () => {
+    if (audioRecorder) {
+      audioRecorder.save();
+    }
   };
 
   return (
@@ -40,6 +60,27 @@ function Analytics({ analytics, onClose, language }) {
               <span className="stat-label">{t('duration', language)}</span>
             </div>
           </div>
+
+          {/* Audio Playback */}
+          {audioUrl && (
+            <div className="analytics-section">
+              <h3>INTERVIEW RECORDING</h3>
+              <div className="audio-playback">
+                <audio
+                  ref={audioRef}
+                  src={audioUrl}
+                  controls
+                  className="audio-player"
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
+                />
+                <button className="btn-ollama" onClick={handleSaveRecording}>
+                  Save Recording (.webm)
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Type breakdown */}
           <div className="analytics-section">

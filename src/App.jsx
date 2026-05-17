@@ -5,16 +5,27 @@ import Settings from './components/Settings';
 import Controls from './components/Controls';
 import QuestionBank from './components/QuestionBank';
 import Analytics from './components/Analytics';
+import MockInterview from './components/MockInterview';
+import History from './components/History';
+import KeyboardShortcuts from './components/KeyboardShortcuts';
+import UpdateBanner from './components/UpdateBanner';
 import { SpeechToText } from './services/stt';
 import { LLMService } from './services/llm';
 import { AnalyticsService } from './services/analytics';
 import { TranscriptService } from './services/transcript';
+import { AudioRecorderService } from './services/audioRecorder';
+import { DiarizationService } from './services/diarization';
+import { NotificationSoundService } from './services/notificationSound';
+import { HistoryService } from './services/history';
+import { ProfilesService } from './services/profiles';
+import { PdfExportService } from './services/pdfExport';
 import { t } from './services/i18n';
 
 const DEFAULT_SETTINGS = {
   resume: '',
   jobDescription: '',
   companyInfo: '',
+  companyName: '',
   llmApiKey: '',
   llmBaseUrl: 'https://api.openai.com/v1',
   llmModel: 'gpt-4',
@@ -28,7 +39,9 @@ const DEFAULT_SETTINGS = {
   fontSize: 14,
   opacity: 0.85,
   theme: 'dark',
-  language: 'en'
+  language: 'en',
+  enableNotificationSound: true,
+  activeProfileId: null
 };
 
 const pageTransition = {
@@ -43,6 +56,9 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showMockInterview, setShowMockInterview] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [partialTranscript, setPartialTranscript] = useState('');
   const [response, setResponse] = useState('');
@@ -52,11 +68,17 @@ function App() {
   const [questionTimer, setQuestionTimer] = useState(0);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [conversationHistory, setConversationHistory] = useState([]);
+  const [currentSpeaker, setCurrentSpeaker] = useState(null);
+  const [answerScore, setAnswerScore] = useState(null);
+  const [transcriptEntries, setTranscriptEntries] = useState([]);
 
   const sttRef = useRef(null);
   const llmRef = useRef(null);
   const analyticsRef = useRef(new AnalyticsService());
   const transcriptRef = useRef(new TranscriptService());
+  const audioRecorderRef = useRef(new AudioRecorderService());
+  const diarizationRef = useRef(new DiarizationService());
+  const notificationRef = useRef(new NotificationSoundService());
   const questionBufferRef = useRef('');
   const silenceTimerRef = useRef(null);
   const questionTimerRef = useRef(null);
@@ -90,6 +112,11 @@ function App() {
     });
   }, [settings.llmApiKey, settings.llmBaseUrl, settings.llmModel]);
 
+  // Update notification sound setting
+  useEffect(() => {
+    notificationRef.current.setEnabled(settings.enableNotificationSound !== false);
+  }, [settings.enableNotificationSound]);
+
   // Listen for global shortcut - cycle modes
   useEffect(() => {
     if (window.electronAPI) {
@@ -105,6 +132,64 @@ function App() {
       return cleanup;
     }
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // ? or Ctrl+/ to show shortcuts
+      if ((e.key === '?' && !e.ctrlKey && !e.metaKey) || (e.key === '/' && (e.ctrlKey || e.metaKey))) {
+        e.preventDefault();
+        setShowShortcuts(prev => !prev);
+        return;
+      }
+
+      // Escape to close panels
+      if (e.key === 'Escape') {
+        if (showShortcuts) { setShowShortcuts(false); return; }
+        if (showSettings) { setShowSettings(false); return; }
+        if (showQuestionBank) { setShowQuestionBank(false); return; }
+        if (showAnalytics) { setShowAnalytics(false); return; }
+        if (showMockInterview) { setShowMockInterview(false); return; }
+        if (showHistory) { setShowHistory(false); return; }
+        return;
+      }
+
+      // Don't trigger shortcuts when typing in inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 's':
+            e.preventDefault();
+            handleSaveTranscript();
+            break;
+          case 'e':
+            e.preventDefault();
+            handleExportPdf();
+            break;
+          case 'm':
+            e.preventDefault();
+            setShowMockInterview(prev => !prev);
+            break;
+          case 'h':
+            e.preventDefault();
+            setShowHistory(prev => !prev);
+            break;
+          case ',':
+            e.preventDefault();
+            setShowSettings(prev => !prev);
+            break;
+          case 'k':
+            e.preventDefault();
+            handleClearTranscript();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showShortcuts, showSettings, showQuestionBank, showAnalytics, showMockInterview, showHistory]);
 
   // Question timer
   useEffect(() => {
@@ -129,6 +214,7 @@ function App() {
 
     setIsGenerating(true);
     setResponse('');
+    setAnswerScore(null);
 
     try {
       const result = await llmRef.current.generateResponse({
@@ -154,7 +240,21 @@ function App() {
 
           // Record in analytics and transcript
           analyticsRef.current.recordQuestion(question, meta.questionType, meta.confidence);
+          const entry = {
+            question,
+            response: full,
+            type: meta.questionType?.label || 'General',
+            speaker: currentSpeaker || 'interviewer',
+            timestamp: new Date()
+          };
           transcriptRef.current.addEntry(question, full, meta.questionType);
+          setTranscriptEntries(prev => [...prev, entry]);
+
+          // Play notification sound
+          notificationRef.current.play();
+
+          // Generate answer score
+          generateAnswerScore(question, full, meta);
         }
       });
 
@@ -167,10 +267,62 @@ function App() {
       setResponse(`Error: ${err.message}`);
       setIsGenerating(false);
     }
-  }, [settings, conversationHistory]);
+  }, [settings, conversationHistory, currentSpeaker]);
+
+  // Answer scoring
+  const generateAnswerScore = useCallback(async (question, response, meta) => {
+    if (!llmRef.current) return;
+
+    try {
+      const scorePrompt = `Rate this interview answer on a scale of 1-10. Consider: relevance to question, use of specifics, structure, and professionalism.
+
+Question: "${question}"
+Suggested Answer: "${response}"
+
+Respond in EXACTLY this format (nothing else):
+SCORE: X/10
+FEEDBACK: [one sentence on how to improve]`;
+
+      const scoreResponse = await fetch(`${llmRef.current.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(llmRef.current.apiKey ? { 'Authorization': `Bearer ${llmRef.current.apiKey}` } : {})
+        },
+        body: JSON.stringify({
+          model: llmRef.current.model,
+          messages: [
+            { role: 'user', content: scorePrompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 100
+        })
+      });
+
+      if (scoreResponse.ok) {
+        const data = await scoreResponse.json();
+        const text = data.choices?.[0]?.message?.content || '';
+        const scoreMatch = text.match(/SCORE:\s*(\d+)\/10/i);
+        const feedbackMatch = text.match(/FEEDBACK:\s*(.+)/i);
+
+        if (scoreMatch) {
+          setAnswerScore({
+            score: parseInt(scoreMatch[1]),
+            feedback: feedbackMatch ? feedbackMatch[1].trim() : ''
+          });
+        }
+      }
+    } catch (err) {
+      // Score generation is non-critical, silently fail
+      console.error('Score generation failed:', err);
+    }
+  }, []);
 
   // Handle transcription
   const handleTranscript = useCallback((text) => {
+    // Notify diarization service
+    diarizationRef.current.onTranscriptReceived();
+
     questionBufferRef.current += ' ' + text;
     setTranscript(questionBufferRef.current.trim());
     setPartialTranscript('');
@@ -192,6 +344,11 @@ function App() {
     setPartialTranscript(text);
   }, []);
 
+  // Speaker change handler
+  const handleSpeakerChange = useCallback((speaker) => {
+    setCurrentSpeaker(speaker);
+  }, []);
+
   // Start/stop listening based on mode
   useEffect(() => {
     if (mode === 'listening') {
@@ -206,6 +363,12 @@ function App() {
       });
       sttRef.current.start();
 
+      // Start audio recording
+      audioRecorderRef.current.start();
+
+      // Start diarization
+      diarizationRef.current.start(handleSpeakerChange);
+
       // Start analytics if not started
       if (!analyticsRef.current.startTime) {
         analyticsRef.current.start();
@@ -219,6 +382,11 @@ function App() {
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
       }
+      // Don't stop recorder on pause, only on full stop
+      if (mode === 'stopped') {
+        audioRecorderRef.current.stop();
+        diarizationRef.current.stop();
+      }
     }
 
     return () => {
@@ -226,7 +394,7 @@ function App() {
         sttRef.current.stop();
       }
     };
-  }, [mode, handleTranscript, handlePartial, settings.useDeepgram, settings.deepgramApiKey, settings.audioMode, settings.enableNoiseGate, settings.language]);
+  }, [mode, handleTranscript, handlePartial, handleSpeakerChange, settings.useDeepgram, settings.deepgramApiKey, settings.audioMode, settings.enableNoiseGate, settings.language]);
 
   const handleCycleMode = () => {
     setMode(prev => {
@@ -252,6 +420,7 @@ function App() {
     setResponse('');
     setQuestionType(null);
     setConfidence(null);
+    setAnswerScore(null);
     questionBufferRef.current = '';
   };
 
@@ -269,6 +438,17 @@ function App() {
     transcriptRef.current.download('md');
   };
 
+  const handleExportPdf = () => {
+    if (transcriptEntries.length > 0) {
+      PdfExportService.exportTranscript(transcriptEntries, {
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        totalQuestions: transcriptEntries.length,
+        duration: analyticsRef.current.getSummary().duration
+      });
+    }
+  };
+
   const handlePracticeQuestion = (question) => {
     setShowQuestionBank(false);
     setTranscript(question);
@@ -278,6 +458,19 @@ function App() {
 
   const handleEndInterview = () => {
     setMode('stopped');
+
+    // Save to history
+    const summary = analyticsRef.current.getSummary();
+    HistoryService.addSession({
+      duration: summary.duration,
+      totalQuestions: summary.totalQuestions,
+      transcript: transcriptEntries,
+      analytics: summary,
+      profileName: settings.activeProfileId
+        ? (ProfilesService.getActiveProfile()?.name || 'Default')
+        : 'Default'
+    });
+
     setShowAnalytics(true);
   };
 
@@ -286,14 +479,6 @@ function App() {
   const containerStyle = {
     '--overlay-opacity': settings.opacity,
     '--font-size': `${settings.fontSize}px`
-  };
-
-  // Determine current view key for AnimatePresence
-  const getCurrentView = () => {
-    if (showSettings) return 'settings';
-    if (showQuestionBank) return 'questionBank';
-    if (showAnalytics) return 'analytics';
-    return 'overlay';
   };
 
   // Hidden mode - minimal UI
@@ -316,6 +501,8 @@ function App() {
 
   return (
     <div className={`app-container ${themeClass}`} style={containerStyle}>
+      <UpdateBanner />
+
       <Controls
         mode={mode}
         isListening={isListening}
@@ -325,8 +512,11 @@ function App() {
         onMinimize={() => window.electronAPI?.minimizeWindow()}
         onClear={handleClearTranscript}
         onSaveTranscript={handleSaveTranscript}
+        onExportPdf={handleExportPdf}
         onQuestionBank={() => setShowQuestionBank(true)}
         onAnalytics={handleEndInterview}
+        onMockInterview={() => setShowMockInterview(true)}
+        onHistory={() => setShowHistory(true)}
         language={settings.language}
       />
 
@@ -352,7 +542,24 @@ function App() {
           <motion.div key="analytics" {...pageTransition}>
             <Analytics
               analytics={analyticsRef.current.getSummary()}
+              audioRecorder={audioRecorderRef.current}
               onClose={() => setShowAnalytics(false)}
+              language={settings.language}
+            />
+          </motion.div>
+        ) : showMockInterview ? (
+          <motion.div key="mockInterview" {...pageTransition}>
+            <MockInterview
+              settings={settings}
+              llmService={llmRef.current}
+              onClose={() => setShowMockInterview(false)}
+              language={settings.language}
+            />
+          </motion.div>
+        ) : showHistory ? (
+          <motion.div key="history" {...pageTransition}>
+            <History
+              onClose={() => setShowHistory(false)}
               language={settings.language}
             />
           </motion.div>
@@ -370,8 +577,17 @@ function App() {
               mode={mode}
               language={settings.language}
               fontSize={settings.fontSize}
+              currentSpeaker={currentSpeaker}
+              answerScore={answerScore}
             />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Keyboard Shortcuts Overlay */}
+      <AnimatePresence>
+        {showShortcuts && (
+          <KeyboardShortcuts onClose={() => setShowShortcuts(false)} />
         )}
       </AnimatePresence>
     </div>

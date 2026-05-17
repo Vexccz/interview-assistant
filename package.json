@@ -1,11 +1,12 @@
 {
   "name": "interview-assistant",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Real-time AI interview assistant with live transcription and smart response generation",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "vite build && electron-builder",
+    "build": "vite build",
+    "build:exe": "vite build && electron-builder --win",
     "preview": "vite preview"
   },
   "keywords": [
@@ -20,6 +21,7 @@
   "dependencies": {
     "electron-store": "8.2.0",
     "framer-motion": "^12.38.0",
+    "jspdf": "^2.5.2",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
@@ -30,5 +32,36 @@
     "electron-builder": "25.1.8",
     "vite": "6.0.7",
     "wait-on": "8.0.3"
+  },
+  "build": {
+    "appId": "com.interviewai.app",
+    "productName": "InterviewAI",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.png",
+      "uninstallerIcon": "build/icon.png",
+      "installerHeaderIcon": "build/icon.png"
+    }
   }
 }

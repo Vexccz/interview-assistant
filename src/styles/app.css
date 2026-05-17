@@ -993,6 +993,497 @@ body {
 }
 
 /* ============================================
+   Code Blocks (Technical Questions)
+   ============================================ */
+.code-block {
+  background: #18181b;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin: 8px 0;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.inline-code {
+  background: var(--bg-hover);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9em;
+  color: var(--accent);
+}
+
+/* ============================================
+   Answer Score / Feedback
+   ============================================ */
+.badge-score {
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.badge-score-high {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.badge-score-medium {
+  background: rgba(234, 179, 8, 0.1);
+  color: var(--warning);
+}
+
+.badge-score-low {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.answer-feedback {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.feedback-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ============================================
+   Speaker Diarization Badge
+   ============================================ */
+.badge-speaker {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.badge-speaker-user {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.badge-speaker-interviewer {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--accent);
+}
+
+/* ============================================
+   Update Banner
+   ============================================ */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  background: rgba(59, 130, 246, 0.08);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+  flex-shrink: 0;
+}
+
+.update-text {
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 500;
+  flex: 1;
+}
+
+.update-link {
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.update-dismiss {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+}
+
+/* ============================================
+   Keyboard Shortcuts Overlay
+   ============================================ */
+.shortcuts-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.shortcuts-panel {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.shortcuts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.shortcut-item:hover {
+  background: var(--bg-hover);
+}
+
+.shortcut-key {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+}
+
+.shortcut-action {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+/* ============================================
+   Mock Interview
+   ============================================ */
+.mock-interview-panel {
+  overflow-y: auto;
+}
+
+.mock-interview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mock-idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.mock-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-width: 300px;
+}
+
+.mock-section {
+  padding: 16px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.mock-section .section-label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.mock-question {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.mock-answer {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  min-height: 40px;
+  font-style: italic;
+}
+
+.mock-evaluation {
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.mock-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.mock-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.mock-history-item {
+  padding: 10px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.mock-history-q {
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.mock-history-a {
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.mock-history-eval {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ============================================
+   History Panel
+   ============================================ */
+.history-panel {
+  overflow-y: auto;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.history-item:hover {
+  background: var(--bg-hover);
+}
+
+.history-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.history-item-date {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.history-item-profile {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.history-item-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-item-stat {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.history-detail-meta {
+  display: flex;
+  gap: 16px;
+  padding: 10px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.history-transcript-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.history-transcript-item {
+  padding: 12px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.history-q-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.history-q-num {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.history-q-text {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.history-a-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+
+/* ============================================
+   Profiles (Settings)
+   ============================================ */
+.profile-create-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.profile-create-row input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.profiles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: background var(--transition-fast);
+}
+
+.profile-item.active {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.profile-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.profile-item-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.profile-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ============================================
+   Company Research & Resume Upload
+   ============================================ */
+.company-research-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.company-research-row input {
+  flex: 1;
+}
+
+.resume-upload-row {
+  margin-bottom: 8px;
+}
+
+/* ============================================
+   Audio Playback (Analytics)
+   ============================================ */
+.audio-playback {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audio-player {
+  width: 100%;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.audio-player::-webkit-media-controls-panel {
+  background: var(--bg-hover);
+}
+
+/* ============================================
    Custom Scrollbar
    ============================================ */
 ::-webkit-scrollbar {

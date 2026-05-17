@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { t, getLanguages } from '../services/i18n';
 import { LLMService } from '../services/llm';
+import { ProfilesService } from '../services/profiles';
+import { ResumeParserService } from '../services/resumeParser';
+import { CompanyResearchService } from '../services/companyResearch';
 
 function Settings({ settings, onSave, onClose, language }) {
   const [form, setForm] = useState({ ...settings });
   const [activeTab, setActiveTab] = useState('general');
   const [ollamaStatus, setOllamaStatus] = useState(null);
+  const [profiles, setProfiles] = useState(ProfilesService.getProfiles());
+  const [newProfileName, setNewProfileName] = useState('');
+  const [isResearching, setIsResearching] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -34,8 +41,76 @@ function Settings({ settings, onSave, onClose, language }) {
     }
   };
 
+  // Resume file upload
+  const handleResumeUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await ResumeParserService.parseFile(file);
+      if (text) {
+        handleChange('resume', text);
+      }
+    } catch (err) {
+      console.error('Resume parse error:', err);
+    }
+  };
+
+  // Company research
+  const handleCompanyResearch = async () => {
+    if (!form.companyName?.trim()) return;
+    setIsResearching(true);
+    try {
+      const info = await CompanyResearchService.fetchCompanyInfo(form.companyName);
+      if (info) {
+        handleChange('companyInfo', info);
+      }
+    } catch (err) {
+      console.error('Company research error:', err);
+    }
+    setIsResearching(false);
+  };
+
+  // Profile management
+  const handleSaveProfile = () => {
+    if (!newProfileName.trim()) return;
+    const profile = ProfilesService.addProfile({
+      name: newProfileName,
+      resume: form.resume,
+      jobDescription: form.jobDescription,
+      companyName: form.companyName || '',
+      companyInfo: form.companyInfo
+    });
+    setProfiles(ProfilesService.getProfiles());
+    setNewProfileName('');
+    handleChange('activeProfileId', profile.id);
+    ProfilesService.setActiveProfileId(profile.id);
+  };
+
+  const handleLoadProfile = (profileId) => {
+    const profile = profiles.find(p => p.id === profileId);
+    if (profile) {
+      handleChange('resume', profile.resume || '');
+      handleChange('jobDescription', profile.jobDescription || '');
+      handleChange('companyName', profile.companyName || '');
+      handleChange('companyInfo', profile.companyInfo || '');
+      handleChange('activeProfileId', profile.id);
+      ProfilesService.setActiveProfileId(profile.id);
+    }
+  };
+
+  const handleDeleteProfile = (profileId) => {
+    ProfilesService.deleteProfile(profileId);
+    setProfiles(ProfilesService.getProfiles());
+    if (form.activeProfileId === profileId) {
+      handleChange('activeProfileId', null);
+      ProfilesService.setActiveProfileId(null);
+    }
+  };
+
   const tabs = [
     { id: 'general', label: t('tabGeneral', language) },
+    { id: 'profiles', label: 'Profiles' },
     { id: 'audio', label: t('tabAudio', language) },
     { id: 'ai', label: t('tabAI', language) },
     { id: 'display', label: t('tabDisplay', language) }
@@ -121,12 +196,26 @@ function Settings({ settings, onSave, onClose, language }) {
 
               <div className="settings-section">
                 <h3>{t('interviewContext', language)}</h3>
+
+                {/* Resume with upload */}
                 <label>
                   {t('resume', language)}
+                  <div className="resume-upload-row">
+                    <button type="button" className="btn-ollama" onClick={() => fileInputRef.current?.click()}>
+                      Upload Resume (PDF/TXT)
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.txt"
+                      style={{ display: 'none' }}
+                      onChange={handleResumeUpload}
+                    />
+                  </div>
                   <textarea
                     value={form.resume}
                     onChange={(e) => handleChange('resume', e.target.value)}
-                    placeholder="Paste your resume here..."
+                    placeholder="Paste your resume here or upload a file..."
                     rows={4}
                   />
                 </label>
@@ -139,6 +228,28 @@ function Settings({ settings, onSave, onClose, language }) {
                     rows={4}
                   />
                 </label>
+
+                {/* Company name with auto-fetch */}
+                <label>
+                  Company Name
+                  <div className="company-research-row">
+                    <input
+                      type="text"
+                      value={form.companyName || ''}
+                      onChange={(e) => handleChange('companyName', e.target.value)}
+                      placeholder="e.g. Google, Microsoft..."
+                    />
+                    <button
+                      type="button"
+                      className="btn-ollama"
+                      onClick={handleCompanyResearch}
+                      disabled={isResearching || !form.companyName?.trim()}
+                    >
+                      {isResearching ? 'Researching...' : 'Auto-fetch'}
+                    </button>
+                  </div>
+                </label>
+
                 <label>
                   {t('companyInfo', language)}
                   <textarea
@@ -164,6 +275,56 @@ function Settings({ settings, onSave, onClose, language }) {
                       />
                       {lang.label}
                     </label>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Profiles Tab */}
+          {activeTab === 'profiles' && (
+            <motion.div key="profiles" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+              <div className="settings-section">
+                <h3>INTERVIEW PROFILES</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  Save different profiles for different job applications. Each profile stores resume, job description, and company info.
+                </p>
+
+                {/* Create new profile */}
+                <div className="profile-create-row">
+                  <input
+                    type="text"
+                    value={newProfileName}
+                    onChange={(e) => setNewProfileName(e.target.value)}
+                    placeholder="New profile name..."
+                  />
+                  <button type="button" className="btn-ollama" onClick={handleSaveProfile} disabled={!newProfileName.trim()}>
+                    Save Current as Profile
+                  </button>
+                </div>
+
+                {/* Profile list */}
+                <div className="profiles-list">
+                  {profiles.length === 0 && (
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      No profiles saved yet.
+                    </p>
+                  )}
+                  {profiles.map(profile => (
+                    <div key={profile.id} className={`profile-item ${form.activeProfileId === profile.id ? 'active' : ''}`}>
+                      <div className="profile-item-info">
+                        <span className="profile-item-name">{profile.name}</span>
+                        <span className="profile-item-date">{new Date(profile.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="profile-item-actions">
+                        <button type="button" className="btn-ollama" onClick={() => handleLoadProfile(profile.id)}>
+                          Load
+                        </button>
+                        <button type="button" className="btn-icon" onClick={() => handleDeleteProfile(profile.id)} title="Delete">
+                          🗑
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -218,6 +379,18 @@ function Settings({ settings, onSave, onClose, language }) {
                     onChange={(e) => handleChange('enableNoiseGate', e.target.checked)}
                   />
                   {t('enableNoiseGate', language)}
+                </label>
+              </div>
+
+              <div className="settings-section">
+                <h3>NOTIFICATION SOUND</h3>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={form.enableNotificationSound !== false}
+                    onChange={(e) => handleChange('enableNotificationSound', e.target.checked)}
+                  />
+                  Play chime when AI response is ready
                 </label>
               </div>
 

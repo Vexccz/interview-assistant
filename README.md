@@ -1,102 +1,102 @@
-# Interview Assistant
+# InterviewAI
 
-Real-time AI interview assistant that listens to interviewer questions via microphone, transcribes them live, and generates smart suggested responses.
+Real-time AI interview assistant with live transcription and smart response generation.
 
 ## Features
 
-- **Live Transcription** — Real-time speech-to-text of interviewer's questions
-- **AI Response Generation** — Streaming AI-generated suggested answers
-- **Context-Aware** — Uses your resume, job description, and conversation history
-- **Overlay Mode** — Transparent, always-on-top, frameless window
-- **Global Hotkey** — Ctrl+Shift+Space to toggle listening
-- **Flexible LLM** — Works with OpenAI, DeepSeek, Ollama, or any OpenAI-compatible API
-- **Free STT** — Uses Web Speech API by default (no API key needed), with optional Deepgram upgrade
+### Core
+- **Live Transcription** — Real-time speech-to-text using Web Speech API or Deepgram
+- **AI Response Generation** — Smart suggested responses via any OpenAI-compatible LLM
+- **Question Type Detection** — Automatically detects behavioral, technical, situational questions
+- **STAR Method Formatting** — Auto-formats behavioral answers with Situation/Task/Action/Result
+- **Confidence Scoring** — Shows how well the AI can answer based on available context
+
+### v0.2.0 New Features
+- **Speaker Diarization** — Detects who is speaking (interviewer vs user) using audio energy levels
+- **Multi-language Support** — English and Bahasa Malaysia with auto-detection
+- **Audio Recording & Playback** — Records entire interview, playback in Analytics view
+- **Company Research Auto-fetch** — Enter company name, auto-fetches context for LLM
+- **Resume Parser** — Upload PDF/TXT resume, parsed text used as LLM context
+- **Mock Interview Mode** — AI acts as interviewer, generates questions, evaluates your answers
+- **Answer Scoring** — Each response scored 1-10 with improvement feedback
+- **Code Snippets** — Technical questions include syntax-highlighted code examples
+- **Keyboard Shortcuts** — Press `?` or `Ctrl+/` to see all shortcuts
+- **Multiple Interview Profiles** — Save different resume/job/company combos, quick-switch
+- **Interview History** — Past sessions saved with transcript and analytics (max 50, FIFO)
+- **Export PDF** — Export transcript as formatted PDF
+- **Notification Sound** — Subtle chime when AI response is ready (toggleable)
+- **Windows Installer** — Package as .exe with NSIS installer
+- **Auto-update Checker** — Checks GitHub releases for newer versions on startup
+- **Portable Mode** — Run with `--portable` flag to store data in app directory
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js 18+
-- An OpenAI-compatible LLM API endpoint (or local Ollama)
-
-### Setup
-
 ```bash
-# Clone the repo
-git clone https://github.com/Vexccz/interview-assistant.git
-cd interview-assistant
-
 # Install dependencies
 npm install
 
-# Run in development mode
+# Run in development
 npm run dev
+
+# Build for production
+npm run build
+
+# Package as Windows .exe installer
+npm run build:exe
 ```
-
-### Configuration
-
-1. Click the ⚙️ gear icon in the app
-2. Set your LLM API endpoint:
-   - **OpenAI**: Base URL `https://api.openai.com/v1`, add your API key
-   - **Ollama (local)**: Base URL `http://localhost:11434/v1`, no API key needed
-   - **DeepSeek**: Base URL `https://api.deepseek.com/v1`, add your API key
-3. Paste your resume and job description for context-aware responses
-4. Click Save
-
-### Usage
-
-1. Start the app with `npm run dev`
-2. Press **Ctrl+Shift+Space** or click **Start** to begin listening
-3. The app transcribes what the interviewer says in real-time
-4. After 2 seconds of silence, it generates a suggested response
-5. Read the suggested response naturally during your interview
-
-## Tech Stack
-
-- **Electron** — Desktop app framework
-- **React + Vite** — Frontend UI
-- **Web Speech API** — Free speech-to-text (default)
-- **Deepgram** — Optional premium STT
-- **OpenAI-compatible API** — LLM response generation
 
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl+Shift+Space | Toggle listening on/off |
+| `Ctrl+Shift+Space` | Cycle modes (Start → Pause → Hidden → Start) |
+| `Ctrl+/` or `?` | Show keyboard shortcuts |
+| `Ctrl+S` | Save transcript |
+| `Ctrl+E` | Export transcript as PDF |
+| `Ctrl+M` | Toggle mock interview mode |
+| `Ctrl+H` | View interview history |
+| `Ctrl+,` | Open settings |
+| `Ctrl+K` | Clear transcript |
+| `Escape` | Close current panel |
 
-## Build for Production
+## Portable Mode
+
+Run the app with the `--portable` flag to store all data (settings, profiles, history) in the app directory instead of AppData:
 
 ```bash
-npm run build
+InterviewAI.exe --portable
 ```
 
-## Project Structure
+This is useful for running from a USB drive or shared folder without leaving traces on the host system.
 
-```
-interview-assistant/
-├── package.json
-├── vite.config.js
-├── index.html
-├── electron/
-│   ├── main.js          # Electron main process
-│   └── preload.js       # IPC bridge
-├── src/
-│   ├── main.jsx         # React entry point
-│   ├── App.jsx          # Main app component
-│   ├── styles.css       # Global styles
-│   ├── components/
-│   │   ├── Overlay.jsx  # Transcription + response display
-│   │   ├── Settings.jsx # Settings panel
-│   │   └── Controls.jsx # Start/stop controls
-│   └── services/
-│       ├── stt.js       # Speech-to-text service
-│       ├── llm.js       # LLM API service
-│       └── audio.js     # Audio capture
-├── .env.example
-└── .gitignore
-```
+## Configuration
+
+### LLM Setup
+Supports any OpenAI-compatible API:
+- **OpenAI** — Set API key and base URL `https://api.openai.com/v1`
+- **Ollama** — Click "Use Ollama" button (auto-detects local instance)
+- **DeepSeek, Groq, etc.** — Set appropriate base URL and API key
+
+### Audio
+- **Microphone Only** — Default, captures your mic
+- **System Audio** — Captures desktop audio (interviewer on call)
+- **Both** — Combines mic + system audio
+
+### Profiles
+Save multiple interview profiles in Settings → Profiles tab. Each profile stores:
+- Resume text
+- Job description
+- Company name & info
+
+Quick-switch between profiles for different job applications.
+
+## Tech Stack
+- Electron 33
+- React 18 + Vite 6
+- Framer Motion
+- Web Speech API / Deepgram
+- jsPDF for PDF export
+- electron-builder for packaging
 
 ## License
-
 MIT

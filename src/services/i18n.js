@@ -15,7 +15,8 @@ const translations = {
     hidden: '👁 HIDDEN',
 
     // Overlay
-    interviewer: '🎤 Interviewer',
+    interviewer: 'Interviewer',
+    you: 'You',
     suggestedResponse: '💡 Suggested Response',
     generating: 'generating...',
     listeningPlaceholder: 'Listening for questions...',
@@ -100,7 +101,18 @@ const translations = {
     // Confidence
     confidenceHigh: '🟢 High',
     confidenceMedium: '🟡 Medium',
-    confidenceLow: '🔴 Low'
+    confidenceLow: '🔴 Low',
+
+    // Mock Interview
+    mockInterview: 'Mock Interview',
+    startMock: 'Start Mock Interview',
+    endMock: 'End Interview',
+    submitAnswer: 'Submit Answer',
+
+    // History
+    history: 'Interview History',
+    noHistory: 'No interview history yet.',
+    exportPdf: 'Export PDF'
   },
   bm: {
     // Controls
@@ -116,7 +128,8 @@ const translations = {
     hidden: '👁 SEMBUNYI',
 
     // Overlay
-    interviewer: '🎤 Penemuduga',
+    interviewer: 'Penemuduga',
+    you: 'Anda',
     suggestedResponse: '💡 Cadangan Jawapan',
     generating: 'menjana...',
     listeningPlaceholder: 'Mendengar soalan...',
@@ -201,7 +214,18 @@ const translations = {
     // Confidence
     confidenceHigh: '🟢 Tinggi',
     confidenceMedium: '🟡 Sederhana',
-    confidenceLow: '🔴 Rendah'
+    confidenceLow: '🔴 Rendah',
+
+    // Mock Interview
+    mockInterview: 'Temuduga Simulasi',
+    startMock: 'Mula Temuduga Simulasi',
+    endMock: 'Tamat Temuduga',
+    submitAnswer: 'Hantar Jawapan',
+
+    // History
+    history: 'Sejarah Temuduga',
+    noHistory: 'Tiada sejarah temuduga lagi.',
+    exportPdf: 'Eksport PDF'
   }
 };
 

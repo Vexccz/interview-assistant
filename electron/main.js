@@ -2,6 +2,13 @@ const { app, BrowserWindow, globalShortcut, ipcMain, desktopCapturer } = require
 const path = require('path');
 const Store = require('electron-store');
 
+// Portable mode: if --portable flag is passed, store data in app directory
+const isPortable = process.argv.includes('--portable');
+if (isPortable) {
+  const portablePath = path.join(path.dirname(process.execPath), 'data');
+  app.setPath('userData', portablePath);
+}
+
 const store = new Store();
 let mainWindow = null;
 
@@ -64,6 +71,7 @@ ipcMain.handle('get-settings', () => {
     resume: '',
     jobDescription: '',
     companyInfo: '',
+    companyName: '',
     llmApiKey: '',
     llmBaseUrl: 'https://api.openai.com/v1',
     llmModel: 'gpt-4',
@@ -77,7 +85,9 @@ ipcMain.handle('get-settings', () => {
     fontSize: 14,
     opacity: 0.85,
     theme: 'dark',
-    language: 'en'
+    language: 'en',
+    enableNotificationSound: true,
+    activeProfileId: null
   });
 });
 
@@ -113,4 +123,14 @@ ipcMain.handle('get-desktop-sources', async () => {
     console.error('Failed to get desktop sources:', err);
     return [];
   }
+});
+
+// Get app version for update checker
+ipcMain.handle('get-app-version', () => {
+  return app.getVersion();
+});
+
+// Check if running in portable mode
+ipcMain.handle('is-portable', () => {
+  return isPortable;
 });
