@@ -1,5 +1,51 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { t } from '../services/i18n';
+
+const staggerContainer = {
+  initial: {},
+  animate: {
+    transition: { staggerChildren: 0.1 }
+  }
+};
+
+const statCardVariant = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } }
+};
+
+const fadeIn = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.4 } }
+};
+
+function AnimatedNumber({ value }) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    const num = parseInt(value) || 0;
+    const controls = animate(0, num, {
+      duration: 1,
+      ease: 'easeOut',
+      onUpdate: (v) => setDisplay(Math.round(v))
+    });
+    return () => controls.stop();
+  }, [value]);
+
+  return <>{display}</>;
+}
+
+function AnimatedBar({ targetWidth }) {
+  return (
+    <motion.div
+      className="type-bar-fill-inner"
+      initial={{ width: 0 }}
+      animate={{ width: targetWidth }}
+      transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.3 }}
+      style={{ height: '100%', borderRadius: 'inherit', backgroundColor: 'var(--accent-color, #3b82f6)' }}
+    />
+  );
+}
 
 function Analytics({ analytics, onClose, language }) {
   const formatDuration = (seconds) => {
@@ -10,10 +56,22 @@ function Analytics({ analytics, onClose, language }) {
   };
 
   return (
-    <div className="panel analytics-panel">
+    <motion.div
+      className="panel analytics-panel"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="panel-header">
         <h2>{t('analyticsTitle', language)}</h2>
-        <button className="btn-icon" onClick={onClose}>✕</button>
+        <motion.button
+          className="btn-icon"
+          onClick={onClose}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          ✕
+        </motion.button>
       </div>
 
       {analytics.totalQuestions === 0 ? (
@@ -21,52 +79,68 @@ function Analytics({ analytics, onClose, language }) {
           <p>{t('noData', language)}</p>
         </div>
       ) : (
-        <div className="analytics-content">
+        <motion.div
+          className="analytics-content"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+        >
           {/* Stats grid */}
-          <div className="stats-grid">
-            <div className="stat-card">
-              <span className="stat-value">{analytics.totalQuestions}</span>
+          <motion.div className="stats-grid" variants={staggerContainer}>
+            <motion.div className="stat-card" variants={statCardVariant}>
+              <span className="stat-value">
+                <AnimatedNumber value={analytics.totalQuestions} />
+              </span>
               <span className="stat-label">{t('totalQuestions', language)}</span>
-            </div>
-            <div className="stat-card">
-              <span className="stat-value">{analytics.avgResponseTime}{t('seconds', language)}</span>
+            </motion.div>
+            <motion.div className="stat-card" variants={statCardVariant}>
+              <span className="stat-value">
+                <AnimatedNumber value={analytics.avgResponseTime} />{t('seconds', language)}
+              </span>
               <span className="stat-label">{t('avgResponseTime', language)}</span>
-            </div>
-            <div className="stat-card">
+            </motion.div>
+            <motion.div className="stat-card" variants={statCardVariant}>
               <span className="stat-value">{formatDuration(analytics.duration)}</span>
               <span className="stat-label">{t('duration', language)}</span>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
           {/* Type breakdown */}
-          <div className="analytics-section">
+          <motion.div className="analytics-section" variants={fadeIn}>
             <h3>{t('typeBreakdown', language)}</h3>
             <div className="type-breakdown">
               {Object.entries(analytics.typeBreakdown).map(([type, count]) => (
                 <div key={type} className="type-bar">
                   <span className="type-label">{type}</span>
-                  <div className="type-bar-fill" style={{ width: `${(count / analytics.totalQuestions) * 100}%` }}>
+                  <div className="type-bar-fill" style={{ position: 'relative', width: '100%' }}>
+                    <AnimatedBar targetWidth={`${(count / analytics.totalQuestions) * 100}%`} />
                     <span className="type-count">{count}</span>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* Topics */}
           {analytics.topics.length > 0 && (
-            <div className="analytics-section">
+            <motion.div className="analytics-section" variants={fadeIn}>
               <h3>{t('topicsDiscussed', language)}</h3>
-              <div className="topics-list">
+              <motion.div className="topics-list" variants={staggerContainer}>
                 {analytics.topics.map((topic, i) => (
-                  <span key={i} className="topic-tag">{topic}</span>
+                  <motion.span
+                    key={i}
+                    className="topic-tag"
+                    variants={statCardVariant}
+                  >
+                    {topic}
+                  </motion.span>
                 ))}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

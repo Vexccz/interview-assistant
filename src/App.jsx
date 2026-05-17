@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Overlay from './components/Overlay';
 import Settings from './components/Settings';
 import Controls from './components/Controls';
@@ -28,6 +29,13 @@ const DEFAULT_SETTINGS = {
   opacity: 0.85,
   theme: 'dark',
   language: 'en'
+};
+
+const pageTransition = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -12 },
+  transition: { type: 'spring', stiffness: 300, damping: 30 }
 };
 
 function App() {
@@ -280,15 +288,29 @@ function App() {
     '--font-size': `${settings.fontSize}px`
   };
 
+  // Determine current view key for AnimatePresence
+  const getCurrentView = () => {
+    if (showSettings) return 'settings';
+    if (showQuestionBank) return 'questionBank';
+    if (showAnalytics) return 'analytics';
+    return 'overlay';
+  };
+
   // Hidden mode - minimal UI
   if (mode === 'hidden') {
     return (
-      <div className={`app-container ${themeClass} mode-hidden`} style={containerStyle}>
+      <motion.div
+        className={`app-container ${themeClass} mode-hidden`}
+        style={containerStyle}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
         <div className="hidden-indicator" onClick={handleCycleMode}>
           <span>{t('hidden', settings.language)}</span>
           <span className="hidden-hint">Ctrl+Shift+Space</span>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -308,40 +330,50 @@ function App() {
         language={settings.language}
       />
 
-      {showSettings ? (
-        <Settings
-          settings={settings}
-          onSave={handleSaveSettings}
-          onClose={() => setShowSettings(false)}
-          language={settings.language}
-        />
-      ) : showQuestionBank ? (
-        <QuestionBank
-          onClose={() => setShowQuestionBank(false)}
-          onPractice={handlePracticeQuestion}
-          language={settings.language}
-        />
-      ) : showAnalytics ? (
-        <Analytics
-          analytics={analyticsRef.current.getSummary()}
-          onClose={() => setShowAnalytics(false)}
-          language={settings.language}
-        />
-      ) : (
-        <Overlay
-          transcript={transcript}
-          partialTranscript={partialTranscript}
-          response={response}
-          isListening={isListening}
-          isGenerating={isGenerating}
-          questionType={questionType}
-          confidence={confidence}
-          questionTimer={questionTimer}
-          mode={mode}
-          language={settings.language}
-          fontSize={settings.fontSize}
-        />
-      )}
+      <AnimatePresence mode="wait">
+        {showSettings ? (
+          <motion.div key="settings" {...pageTransition}>
+            <Settings
+              settings={settings}
+              onSave={handleSaveSettings}
+              onClose={() => setShowSettings(false)}
+              language={settings.language}
+            />
+          </motion.div>
+        ) : showQuestionBank ? (
+          <motion.div key="questionBank" {...pageTransition}>
+            <QuestionBank
+              onClose={() => setShowQuestionBank(false)}
+              onPractice={handlePracticeQuestion}
+              language={settings.language}
+            />
+          </motion.div>
+        ) : showAnalytics ? (
+          <motion.div key="analytics" {...pageTransition}>
+            <Analytics
+              analytics={analyticsRef.current.getSummary()}
+              onClose={() => setShowAnalytics(false)}
+              language={settings.language}
+            />
+          </motion.div>
+        ) : (
+          <motion.div key="overlay" {...pageTransition}>
+            <Overlay
+              transcript={transcript}
+              partialTranscript={partialTranscript}
+              response={response}
+              isListening={isListening}
+              isGenerating={isGenerating}
+              questionType={questionType}
+              confidence={confidence}
+              questionTimer={questionTimer}
+              mode={mode}
+              language={settings.language}
+              fontSize={settings.fontSize}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

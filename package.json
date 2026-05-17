@@ -8,13 +8,20 @@
     "build": "vite build && electron-builder",
     "preview": "vite preview"
   },
-  "keywords": ["interview", "ai", "assistant", "transcription", "electron"],
+  "keywords": [
+    "interview",
+    "ai",
+    "assistant",
+    "transcription",
+    "electron"
+  ],
   "author": "Vexccz",
   "license": "MIT",
   "dependencies": {
+    "electron-store": "8.2.0",
+    "framer-motion": "^12.38.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "electron-store": "8.2.0"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "4.3.4",

@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { t, getLanguages } from '../services/i18n';
 import { LLMService } from '../services/llm';
+
+const slideIn = {
+  initial: { x: 300, opacity: 0 },
+  animate: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 200, damping: 20 } },
+  exit: { x: 300, opacity: 0, transition: { type: 'tween', duration: 0.2 } }
+};
+
+const tabContent = {
+  initial: { opacity: 0, x: 20 },
+  animate: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },
+  exit: { opacity: 0, x: -20, transition: { type: 'tween', duration: 0.15 } }
+};
 
 function Settings({ settings, onSave, onClose, language }) {
   const [form, setForm] = useState({ ...settings });
@@ -42,10 +55,23 @@ function Settings({ settings, onSave, onClose, language }) {
   ];
 
   return (
-    <div className="settings-panel">
+    <motion.div
+      className="settings-panel"
+      variants={slideIn}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
       <div className="settings-header">
         <h2>{t('settings', language)}</h2>
-        <button className="btn-icon" onClick={onClose}>✕</button>
+        <motion.button
+          className="btn-icon"
+          onClick={onClose}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          ✕
+        </motion.button>
       </div>
 
       {/* Tabs */}
@@ -55,315 +81,366 @@ function Settings({ settings, onSave, onClose, language }) {
             key={tab.id}
             className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
+            style={{ position: 'relative' }}
           >
             {tab.label}
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="settings-tab-indicator"
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 2,
+                  backgroundColor: 'var(--accent-color, #3b82f6)',
+                  borderRadius: 1
+                }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
           </button>
         ))}
       </div>
 
       <form onSubmit={handleSubmit} className="settings-form">
-        {/* General Tab */}
-        {activeTab === 'general' && (
-          <>
-            <div className="settings-section">
-              <h3>{t('llmConfig', language)}</h3>
-              <label>
-                {t('apiBaseUrl', language)}
-                <input
-                  type="text"
-                  value={form.llmBaseUrl}
-                  onChange={(e) => handleChange('llmBaseUrl', e.target.value)}
-                  placeholder="https://api.openai.com/v1"
-                />
-              </label>
-              <label>
-                {t('apiKey', language)}
-                <input
-                  type="password"
-                  value={form.llmApiKey}
-                  onChange={(e) => handleChange('llmApiKey', e.target.value)}
-                  placeholder="sk-... (leave empty for local models)"
-                />
-              </label>
-              <label>
-                {t('model', language)}
-                <input
-                  type="text"
-                  value={form.llmModel}
-                  onChange={(e) => handleChange('llmModel', e.target.value)}
-                  placeholder="gpt-4"
-                />
-              </label>
-
-              {/* Ollama preset */}
-              <div className="ollama-section">
-                <button type="button" className="btn-ollama" onClick={handleOllamaPreset}>
-                  {t('ollamaPreset', language)}
-                </button>
-                <span className={`ollama-status ${ollamaStatus?.available ? 'available' : 'unavailable'}`}>
-                  {ollamaStatus?.available ? t('ollamaDetected', language) : t('ollamaNotFound', language)}
-                </span>
-                {ollamaStatus?.available && ollamaStatus.models.length > 0 && (
-                  <select
-                    className="ollama-models"
-                    value={form.llmModel}
-                    onChange={(e) => handleChange('llmModel', e.target.value)}
-                  >
-                    {ollamaStatus.models.map(m => (
-                      <option key={m.name} value={m.name}>{m.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            </div>
-
-            <div className="settings-section">
-              <h3>{t('interviewContext', language)}</h3>
-              <label>
-                {t('resume', language)}
-                <textarea
-                  value={form.resume}
-                  onChange={(e) => handleChange('resume', e.target.value)}
-                  placeholder="Paste your resume here..."
-                  rows={4}
-                />
-              </label>
-              <label>
-                {t('jobDescription', language)}
-                <textarea
-                  value={form.jobDescription}
-                  onChange={(e) => handleChange('jobDescription', e.target.value)}
-                  placeholder="Paste the job description..."
-                  rows={4}
-                />
-              </label>
-              <label>
-                {t('companyInfo', language)}
-                <textarea
-                  value={form.companyInfo}
-                  onChange={(e) => handleChange('companyInfo', e.target.value)}
-                  placeholder="Company name, culture, what they do..."
-                  rows={3}
-                />
-              </label>
-            </div>
-
-            <div className="settings-section">
-              <h3>{t('language', language)}</h3>
-              <div className="radio-group">
-                {getLanguages().map(lang => (
-                  <label key={lang.code} className="radio-label">
-                    <input
-                      type="radio"
-                      name="language"
-                      value={lang.code}
-                      checked={form.language === lang.code}
-                      onChange={(e) => handleChange('language', e.target.value)}
-                    />
-                    {lang.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Audio Tab */}
-        {activeTab === 'audio' && (
-          <>
-            <div className="settings-section">
-              <h3>{t('audioSource', language)}</h3>
-              <div className="radio-group">
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="audioMode"
-                    value="mic"
-                    checked={form.audioMode === 'mic'}
-                    onChange={(e) => handleChange('audioMode', e.target.value)}
-                  />
-                  {t('micOnly', language)}
-                </label>
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="audioMode"
-                    value="system"
-                    checked={form.audioMode === 'system'}
-                    onChange={(e) => handleChange('audioMode', e.target.value)}
-                  />
-                  {t('systemOnly', language)}
-                </label>
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="audioMode"
-                    value="both"
-                    checked={form.audioMode === 'both'}
-                    onChange={(e) => handleChange('audioMode', e.target.value)}
-                  />
-                  {t('both', language)}
-                </label>
-              </div>
-            </div>
-
-            <div className="settings-section">
-              <h3>{t('noiseCancellation', language)}</h3>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={form.enableNoiseGate}
-                  onChange={(e) => handleChange('enableNoiseGate', e.target.checked)}
-                />
-                {t('enableNoiseGate', language)}
-              </label>
-            </div>
-
-            <div className="settings-section">
-              <h3>{t('sttEngine', language)}</h3>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={form.useDeepgram}
-                  onChange={(e) => handleChange('useDeepgram', e.target.checked)}
-                />
-                {t('useDeepgram', language)}
-              </label>
-              {form.useDeepgram && (
+        <AnimatePresence mode="wait">
+          {/* General Tab */}
+          {activeTab === 'general' && (
+            <motion.div key="general" variants={tabContent} initial="initial" animate="animate" exit="exit">
+              <div className="settings-section">
+                <h3>{t('llmConfig', language)}</h3>
                 <label>
-                  {t('deepgramKey', language)}
+                  {t('apiBaseUrl', language)}
+                  <input
+                    type="text"
+                    value={form.llmBaseUrl}
+                    onChange={(e) => handleChange('llmBaseUrl', e.target.value)}
+                    placeholder="https://api.openai.com/v1"
+                  />
+                </label>
+                <label>
+                  {t('apiKey', language)}
                   <input
                     type="password"
-                    value={form.deepgramApiKey}
-                    onChange={(e) => handleChange('deepgramApiKey', e.target.value)}
-                    placeholder="Deepgram API key"
+                    value={form.llmApiKey}
+                    onChange={(e) => handleChange('llmApiKey', e.target.value)}
+                    placeholder="sk-... (leave empty for local models)"
                   />
                 </label>
-              )}
-            </div>
-          </>
-        )}
+                <label>
+                  {t('model', language)}
+                  <input
+                    type="text"
+                    value={form.llmModel}
+                    onChange={(e) => handleChange('llmModel', e.target.value)}
+                    placeholder="gpt-4"
+                  />
+                </label>
 
-        {/* AI Tab */}
-        {activeTab === 'ai' && (
-          <>
-            <div className="settings-section">
-              <h3>{t('responseMode', language)}</h3>
-              <div className="radio-group">
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="responseMode"
-                    value="concise"
-                    checked={form.responseMode === 'concise'}
-                    onChange={(e) => handleChange('responseMode', e.target.value)}
+                {/* Ollama preset */}
+                <div className="ollama-section">
+                  <button type="button" className="btn-ollama" onClick={handleOllamaPreset}>
+                    {t('ollamaPreset', language)}
+                  </button>
+                  <span className={`ollama-status ${ollamaStatus?.available ? 'available' : 'unavailable'}`}>
+                    {ollamaStatus?.available ? t('ollamaDetected', language) : t('ollamaNotFound', language)}
+                  </span>
+                  {ollamaStatus?.available && ollamaStatus.models.length > 0 && (
+                    <select
+                      className="ollama-models"
+                      value={form.llmModel}
+                      onChange={(e) => handleChange('llmModel', e.target.value)}
+                    >
+                      {ollamaStatus.models.map(m => (
+                        <option key={m.name} value={m.name}>{m.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>{t('interviewContext', language)}</h3>
+                <label>
+                  {t('resume', language)}
+                  <textarea
+                    value={form.resume}
+                    onChange={(e) => handleChange('resume', e.target.value)}
+                    placeholder="Paste your resume here..."
+                    rows={4}
                   />
-                  {t('concise', language)}
                 </label>
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="responseMode"
-                    value="detailed"
-                    checked={form.responseMode === 'detailed'}
-                    onChange={(e) => handleChange('responseMode', e.target.value)}
+                <label>
+                  {t('jobDescription', language)}
+                  <textarea
+                    value={form.jobDescription}
+                    onChange={(e) => handleChange('jobDescription', e.target.value)}
+                    placeholder="Paste the job description..."
+                    rows={4}
                   />
-                  {t('detailed', language)}
+                </label>
+                <label>
+                  {t('companyInfo', language)}
+                  <textarea
+                    value={form.companyInfo}
+                    onChange={(e) => handleChange('companyInfo', e.target.value)}
+                    placeholder="Company name, culture, what they do..."
+                    rows={3}
+                  />
                 </label>
               </div>
-            </div>
 
-            <div className="settings-section">
-              <h3>{t('starMethod', language)}</h3>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={form.useStar}
-                  onChange={(e) => handleChange('useStar', e.target.checked)}
-                />
-                {t('enableStar', language)}
-              </label>
-            </div>
-
-            <div className="settings-section">
-              <h3>{t('bulletMode', language)}</h3>
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={form.bulletMode}
-                  onChange={(e) => handleChange('bulletMode', e.target.checked)}
-                />
-                {t('enableBullets', language)}
-              </label>
-            </div>
-          </>
-        )}
-
-        {/* Display Tab */}
-        {activeTab === 'display' && (
-          <>
-            <div className="settings-section">
-              <h3>{t('fontSize', language)}</h3>
-              <div className="slider-group">
-                <input
-                  type="range"
-                  min="12"
-                  max="24"
-                  value={form.fontSize}
-                  onChange={(e) => handleChange('fontSize', parseInt(e.target.value))}
-                />
-                <span className="slider-value">{form.fontSize}px</span>
+              <div className="settings-section">
+                <h3>{t('language', language)}</h3>
+                <div className="radio-group">
+                  {getLanguages().map(lang => (
+                    <label key={lang.code} className="radio-label">
+                      <input
+                        type="radio"
+                        name="language"
+                        value={lang.code}
+                        checked={form.language === lang.code}
+                        onChange={(e) => handleChange('language', e.target.value)}
+                      />
+                      {lang.label}
+                    </label>
+                  ))}
+                </div>
               </div>
-            </div>
+            </motion.div>
+          )}
 
-            <div className="settings-section">
-              <h3>{t('opacity', language)}</h3>
-              <div className="slider-group">
-                <input
-                  type="range"
-                  min="30"
-                  max="100"
-                  value={Math.round(form.opacity * 100)}
-                  onChange={(e) => handleChange('opacity', parseInt(e.target.value) / 100)}
-                />
-                <span className="slider-value">{Math.round(form.opacity * 100)}%</span>
+          {/* Audio Tab */}
+          {activeTab === 'audio' && (
+            <motion.div key="audio" variants={tabContent} initial="initial" animate="animate" exit="exit">
+              <div className="settings-section">
+                <h3>{t('audioSource', language)}</h3>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="audioMode"
+                      value="mic"
+                      checked={form.audioMode === 'mic'}
+                      onChange={(e) => handleChange('audioMode', e.target.value)}
+                    />
+                    {t('micOnly', language)}
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="audioMode"
+                      value="system"
+                      checked={form.audioMode === 'system'}
+                      onChange={(e) => handleChange('audioMode', e.target.value)}
+                    />
+                    {t('systemOnly', language)}
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="audioMode"
+                      value="both"
+                      checked={form.audioMode === 'both'}
+                      onChange={(e) => handleChange('audioMode', e.target.value)}
+                    />
+                    {t('both', language)}
+                  </label>
+                </div>
               </div>
-            </div>
 
-            <div className="settings-section">
-              <h3>{t('theme', language)}</h3>
-              <div className="radio-group">
-                <label className="radio-label">
+              <div className="settings-section">
+                <h3>{t('noiseCancellation', language)}</h3>
+                <label className="checkbox-label">
                   <input
-                    type="radio"
-                    name="theme"
-                    value="dark"
-                    checked={form.theme === 'dark'}
-                    onChange={(e) => handleChange('theme', e.target.value)}
+                    type="checkbox"
+                    checked={form.enableNoiseGate}
+                    onChange={(e) => handleChange('enableNoiseGate', e.target.checked)}
                   />
-                  {t('dark', language)}
-                </label>
-                <label className="radio-label">
-                  <input
-                    type="radio"
-                    name="theme"
-                    value="light"
-                    checked={form.theme === 'light'}
-                    onChange={(e) => handleChange('theme', e.target.value)}
-                  />
-                  {t('light', language)}
+                  {t('enableNoiseGate', language)}
                 </label>
               </div>
-            </div>
-          </>
-        )}
+
+              <div className="settings-section">
+                <h3>{t('sttEngine', language)}</h3>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={form.useDeepgram}
+                    onChange={(e) => handleChange('useDeepgram', e.target.checked)}
+                  />
+                  {t('useDeepgram', language)}
+                </label>
+                {form.useDeepgram && (
+                  <label>
+                    {t('deepgramKey', language)}
+                    <input
+                      type="password"
+                      value={form.deepgramApiKey}
+                      onChange={(e) => handleChange('deepgramApiKey', e.target.value)}
+                      placeholder="Deepgram API key"
+                    />
+                  </label>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* AI Tab */}
+          {activeTab === 'ai' && (
+            <motion.div key="ai" variants={tabContent} initial="initial" animate="animate" exit="exit">
+              <div className="settings-section">
+                <h3>{t('responseMode', language)}</h3>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="responseMode"
+                      value="concise"
+                      checked={form.responseMode === 'concise'}
+                      onChange={(e) => handleChange('responseMode', e.target.value)}
+                    />
+                    {t('concise', language)}
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="responseMode"
+                      value="detailed"
+                      checked={form.responseMode === 'detailed'}
+                      onChange={(e) => handleChange('responseMode', e.target.value)}
+                    />
+                    {t('detailed', language)}
+                  </label>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>{t('starMethod', language)}</h3>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={form.useStar}
+                    onChange={(e) => handleChange('useStar', e.target.checked)}
+                  />
+                  {t('enableStar', language)}
+                </label>
+              </div>
+
+              <div className="settings-section">
+                <h3>{t('bulletMode', language)}</h3>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={form.bulletMode}
+                    onChange={(e) => handleChange('bulletMode', e.target.checked)}
+                  />
+                  {t('enableBullets', language)}
+                </label>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Display Tab */}
+          {activeTab === 'display' && (
+            <motion.div key="display" variants={tabContent} initial="initial" animate="animate" exit="exit">
+              <div className="settings-section">
+                <h3>{t('fontSize', language)}</h3>
+                <div className="slider-group">
+                  <input
+                    type="range"
+                    min="12"
+                    max="24"
+                    value={form.fontSize}
+                    onChange={(e) => handleChange('fontSize', parseInt(e.target.value))}
+                  />
+                  <motion.span
+                    className="slider-value"
+                    key={form.fontSize}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  >
+                    {form.fontSize}px
+                  </motion.span>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>{t('opacity', language)}</h3>
+                <div className="slider-group">
+                  <input
+                    type="range"
+                    min="30"
+                    max="100"
+                    value={Math.round(form.opacity * 100)}
+                    onChange={(e) => handleChange('opacity', parseInt(e.target.value) / 100)}
+                  />
+                  <motion.span
+                    className="slider-value"
+                    key={Math.round(form.opacity * 100)}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                  >
+                    {Math.round(form.opacity * 100)}%
+                  </motion.span>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>{t('theme', language)}</h3>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="theme"
+                      value="dark"
+                      checked={form.theme === 'dark'}
+                      onChange={(e) => handleChange('theme', e.target.value)}
+                    />
+                    {t('dark', language)}
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="theme"
+                      value="light"
+                      checked={form.theme === 'light'}
+                      onChange={(e) => handleChange('theme', e.target.value)}
+                    />
+                    {t('light', language)}
+                  </label>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="settings-actions">
-          <button type="submit" className="btn-save">{t('save', language)}</button>
-          <button type="button" className="btn-cancel" onClick={onClose}>{t('cancel', language)}</button>
+          <motion.button
+            type="submit"
+            className="btn-save"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+          >
+            {t('save', language)}
+          </motion.button>
+          <motion.button
+            type="button"
+            className="btn-cancel"
+            onClick={onClose}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+          >
+            {t('cancel', language)}
+          </motion.button>
         </div>
       </form>
-    </div>
+    </motion.div>
   );
 }
 
