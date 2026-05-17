@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { t } from '../services/i18n';
 
-function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMinimize, onClear, onSaveTranscript, onExportPdf, onQuestionBank, onAnalytics, onMockInterview, onHistory, onPrepChecklist, onSalaryNegotiation, onDashboard, language, meetingApp, isScreenSharing }) {
+function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMinimize, onClear, onSaveTranscript, onExportPdf, onQuestionBank, onAnalytics, onMockInterview, onHistory, onPrepChecklist, onSalaryNegotiation, onDashboard, onTeamDashboard, onToggleCallRecording, isCallRecording, callRecordingTime, language, meetingApp, isScreenSharing }) {
   const getModeLabel = () => {
     switch (mode) {
       case 'listening': return t('listening', language);
@@ -44,6 +44,15 @@ function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMini
             🖥️ Screen Share
           </span>
         )}
+        {/* Call recording button */}
+        <button
+          className={`btn-toggle ${isCallRecording ? 'recording' : ''}`}
+          onClick={onToggleCallRecording}
+          title={isCallRecording ? 'Stop Call Recording' : 'Record Call'}
+          style={isCallRecording ? { background: '#dc2626', color: 'white' } : {}}
+        >
+          {isCallRecording ? `🔴 ${callRecordingTime || 'REC'}` : '📹 Record Call'}
+        </button>
       </div>
       <div
         className="controls-right"
@@ -63,6 +72,9 @@ function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMini
         </button>
         <button className="btn-icon" onClick={onDashboard} title="Usage Dashboard">
           📈
+        </button>
+        <button className="btn-icon" onClick={onTeamDashboard} title="Team Dashboard">
+          👥
         </button>
         <button className="btn-icon" onClick={onQuestionBank} title={t('questionBank', language)}>
           📋

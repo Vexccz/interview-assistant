@@ -7,6 +7,10 @@ import { ResumeParserService } from '../services/resumeParser';
 import { CompanyResearchService } from '../services/companyResearch';
 import { SubscriptionService } from '../services/subscription';
 import { JobScraperService } from '../services/jobScraper';
+import { FineTuningService } from '../services/fineTuning';
+import { ATSIntegrationService } from '../services/atsIntegration';
+import { ComplianceService } from '../services/compliance';
+import { TeamService } from '../services/team';
 
 function Settings({ settings, onSave, onClose, language }) {
   const [form, setForm] = useState({ ...settings });
@@ -132,6 +136,65 @@ function Settings({ settings, onSave, onClose, language }) {
     }
   };
 
+  // Fine-tuning state
+  const [ftStats, setFtStats] = useState(FineTuningService.getTrainingStats());
+  const [ftExportStatus, setFtExportStatus] = useState(null);
+  const [ftProvider, setFtProvider] = useState('openai');
+
+  // ATS state
+  const [atsSettings, setAtsSettings] = useState(ATSIntegrationService.getSettings());
+  const [atsJobs, setAtsJobs] = useState([]);
+  const [atsFetching, setAtsFetching] = useState(false);
+  const [atsJobUrl, setAtsJobUrl] = useState('');
+
+  // Compliance state
+  const [complianceSettings, setComplianceSettings] = useState(ComplianceService.getSettings());
+
+  const handleExportTrainingData = () => {
+    const result = FineTuningService.exportTrainingData({ format: ftProvider });
+    setFtExportStatus(result);
+    setFtStats(FineTuningService.getTrainingStats());
+  };
+
+  const handleSaveAtsSettings = () => {
+    ATSIntegrationService.saveSettings(atsSettings);
+  };
+
+  const handleFetchAtsJobs = async () => {
+    setAtsFetching(true);
+    try {
+      const result = await ATSIntegrationService.fetchAllJobs();
+      setAtsJobs(result.jobs);
+    } catch (e) {}
+    setAtsFetching(false);
+  };
+
+  const handleImportAtsJob = (job) => {
+    const formatted = ATSIntegrationService.formatJobForSettings(job);
+    handleChange('jobDescription', formatted.jobDescription);
+    if (formatted.companyName) handleChange('companyName', formatted.companyName);
+  };
+
+  const handleParseJobUrl = async () => {
+    if (!atsJobUrl.trim()) return;
+    setAtsFetching(true);
+    try {
+      const job = await ATSIntegrationService.parseJobFromUrl(atsJobUrl);
+      if (job) {
+        const formatted = ATSIntegrationService.formatJobForSettings(job);
+        handleChange('jobDescription', formatted.jobDescription);
+        if (formatted.companyName) handleChange('companyName', formatted.companyName);
+      }
+    } catch (e) {}
+    setAtsFetching(false);
+  };
+
+  const handleSaveCompliance = (updates) => {
+    const newSettings = { ...complianceSettings, ...updates };
+    setComplianceSettings(newSettings);
+    ComplianceService.saveSettings(newSettings);
+  };
+
   const tabs = [
     { id: 'general', label: t('tabGeneral', language) },
     { id: 'profiles', label: 'Profiles' },
@@ -139,6 +202,8 @@ function Settings({ settings, onSave, onClose, language }) {
     { id: 'ai', label: t('tabAI', language) },
     { id: 'display', label: t('tabDisplay', language) },
     { id: 'jobimport', label: 'Job Import' },
+    { id: 'integrations', label: 'Integrations' },
+    { id: 'compliance', label: 'Compliance' },
     { id: 'subscription', label: 'Subscription' }
   ];
 
@@ -422,14 +487,38 @@ function Settings({ settings, onSave, onClose, language }) {
 
               <div className="settings-section">
                 <h3>{t('sttEngine', language)}</h3>
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={form.useDeepgram}
-                    onChange={(e) => handleChange('useDeepgram', e.target.checked)}
-                  />
-                  {t('useDeepgram', language)}
-                </label>
+                <div className="radio-group">
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="sttEngine"
+                      value="webspeech"
+                      checked={!form.useDeepgram && !form.useWhisperOffline}
+                      onChange={() => { handleChange('useDeepgram', false); handleChange('useWhisperOffline', false); }}
+                    />
+                    Web Speech API (Free, built-in)
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="sttEngine"
+                      value="deepgram"
+                      checked={form.useDeepgram}
+                      onChange={() => { handleChange('useDeepgram', true); handleChange('useWhisperOffline', false); }}
+                    />
+                    Deepgram (Cloud, requires API key)
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="sttEngine"
+                      value="whisper"
+                      checked={form.useWhisperOffline}
+                      onChange={() => { handleChange('useDeepgram', false); handleChange('useWhisperOffline', true); }}
+                    />
+                    Whisper (Offline, no internet needed)
+                  </label>
+                </div>
                 {form.useDeepgram && (
                   <label>
                     {t('deepgramKey', language)}
@@ -440,6 +529,12 @@ function Settings({ settings, onSave, onClose, language }) {
                       placeholder="Deepgram API key"
                     />
                   </label>
+                )}
+                {form.useWhisperOffline && (
+                  <div style={{ marginTop: '8px', padding: '10px', background: '#27272a', borderRadius: '8px' }}>
+                    <p style={{ fontSize: '12px', color: '#a1a1aa', marginBottom: '4px' }}>Uses Whisper Tiny model via transformers.js</p>
+                    <p style={{ fontSize: '12px', color: '#71717a' }}>Model downloads on first use (~40MB). Runs entirely offline after that.</p>
+                  </div>
                 )}
               </div>
             </motion.div>
@@ -496,6 +591,90 @@ function Settings({ settings, onSave, onClose, language }) {
                   />
                   {t('enableBullets', language)}
                 </label>
+              </div>
+
+              <div className="settings-section">
+                <h3>CUSTOM MODEL</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                  Use a fine-tuned model for personalized responses.
+                </p>
+                <label>
+                  Custom Model ID
+                  <input
+                    type="text"
+                    value={form.customModelId || ''}
+                    onChange={(e) => handleChange('customModelId', e.target.value)}
+                    placeholder="ft:gpt-4o-mini:org:model-id"
+                  />
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={form.useCustomModel || false}
+                    onChange={(e) => handleChange('useCustomModel', e.target.checked)}
+                  />
+                  Use custom model instead of default
+                </label>
+                {form.useCustomModel && form.customModelId && (
+                  <p style={{ fontSize: '12px', color: '#4ade80', marginTop: '4px' }}>
+                    ✓ Using: {form.customModelId}
+                  </p>
+                )}
+              </div>
+
+              <div className="settings-section">
+                <h3>FINE-TUNING</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                  Export your interview Q&A history as training data for fine-tuning.
+                </p>
+                <div style={{ background: '#27272a', padding: '12px', borderRadius: '8px', marginBottom: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#60a5fa' }}>{ftStats.totalPairs}</div>
+                      <div style={{ fontSize: '11px', color: '#71717a' }}>Q&A Pairs</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: ftStats.readyForFineTuning ? '#4ade80' : '#f59e0b' }}>
+                        {ftStats.readyForFineTuning ? '✓' : '✗'}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#71717a' }}>Ready (min 10)</div>
+                    </div>
+                  </div>
+                </div>
+                <label>
+                  Export Format
+                  <select
+                    value={ftProvider}
+                    onChange={(e) => setFtProvider(e.target.value)}
+                    style={{ width: '100%', marginTop: '4px', padding: '8px', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '6px', color: '#e2e8f0' }}
+                  >
+                    <option value="openai">OpenAI (JSONL)</option>
+                    <option value="together">Together.ai</option>
+                    <option value="alpaca">Alpaca Format</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="btn-ollama"
+                  onClick={handleExportTrainingData}
+                  disabled={!ftStats.readyForFineTuning}
+                  style={{ marginTop: '8px' }}
+                >
+                  Export Training Data ({ftStats.totalPairs} pairs)
+                </button>
+                {ftExportStatus && (
+                  <p style={{ fontSize: '12px', color: ftExportStatus.success ? '#4ade80' : '#f87171', marginTop: '8px' }}>
+                    {ftExportStatus.success ? `✓ Exported ${ftExportStatus.count} pairs as ${ftExportStatus.filename}` : ftExportStatus.error}
+                  </p>
+                )}
+                <details style={{ marginTop: '12px' }}>
+                  <summary style={{ cursor: 'pointer', color: '#818cf8', fontSize: '12px' }}>How to fine-tune</summary>
+                  <div style={{ marginTop: '8px', padding: '10px', background: '#1e1b4b', borderRadius: '6px', fontSize: '12px', color: '#c7d2fe', lineHeight: '1.6' }}>
+                    {FineTuningService.getInstructions(ftProvider).steps.map((step, i) => (
+                      <div key={i}>{step}</div>
+                    ))}
+                  </div>
+                </details>
               </div>
 
               <div className="settings-section">
@@ -625,6 +804,227 @@ function Settings({ settings, onSave, onClose, language }) {
                     ✗ Could not scrape this URL. LinkedIn may be blocking the request. Please paste the job description manually.
                   </p>
                 )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Integrations Tab (ATS) */}
+          {activeTab === 'integrations' && (
+            <motion.div key="integrations" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+              <div className="settings-section">
+                <h3>🏢 ATS INTEGRATIONS</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  Connect to your ATS to auto-import job descriptions and requirements.
+                </p>
+
+                {/* Greenhouse */}
+                <div style={{ background: '#27272a', padding: '12px', borderRadius: '8px', marginBottom: '10px' }}>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={atsSettings.greenhouse?.enabled || false}
+                      onChange={(e) => setAtsSettings(prev => ({ ...prev, greenhouse: { ...prev.greenhouse, enabled: e.target.checked } }))}
+                    />
+                    <strong>Greenhouse</strong>
+                  </label>
+                  {atsSettings.greenhouse?.enabled && (
+                    <label style={{ marginTop: '8px' }}>
+                      API Key (Harvest API)
+                      <input
+                        type="password"
+                        value={atsSettings.greenhouse?.apiKey || ''}
+                        onChange={(e) => setAtsSettings(prev => ({ ...prev, greenhouse: { ...prev.greenhouse, apiKey: e.target.value } }))}
+                        placeholder="Greenhouse Harvest API key"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Lever */}
+                <div style={{ background: '#27272a', padding: '12px', borderRadius: '8px', marginBottom: '10px' }}>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={atsSettings.lever?.enabled || false}
+                      onChange={(e) => setAtsSettings(prev => ({ ...prev, lever: { ...prev.lever, enabled: e.target.checked } }))}
+                    />
+                    <strong>Lever</strong>
+                  </label>
+                  {atsSettings.lever?.enabled && (
+                    <label style={{ marginTop: '8px' }}>
+                      API Key
+                      <input
+                        type="password"
+                        value={atsSettings.lever?.apiKey || ''}
+                        onChange={(e) => setAtsSettings(prev => ({ ...prev, lever: { ...prev.lever, apiKey: e.target.value } }))}
+                        placeholder="Lever API key"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* Workday */}
+                <div style={{ background: '#27272a', padding: '12px', borderRadius: '8px', marginBottom: '10px' }}>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={atsSettings.workday?.enabled || false}
+                      onChange={(e) => setAtsSettings(prev => ({ ...prev, workday: { ...prev.workday, enabled: e.target.checked } }))}
+                    />
+                    <strong>Workday</strong>
+                  </label>
+                  {atsSettings.workday?.enabled && (
+                    <>
+                      <label style={{ marginTop: '8px' }}>
+                        Tenant URL
+                        <input
+                          type="text"
+                          value={atsSettings.workday?.tenantUrl || ''}
+                          onChange={(e) => setAtsSettings(prev => ({ ...prev, workday: { ...prev.workday, tenantUrl: e.target.value } }))}
+                          placeholder="https://your-company.workday.com"
+                        />
+                      </label>
+                      <label style={{ marginTop: '8px' }}>
+                        API Key
+                        <input
+                          type="password"
+                          value={atsSettings.workday?.apiKey || ''}
+                          onChange={(e) => setAtsSettings(prev => ({ ...prev, workday: { ...prev.workday, apiKey: e.target.value } }))}
+                          placeholder="Workday API key"
+                        />
+                      </label>
+                    </>
+                  )}
+                </div>
+
+                <button type="button" className="btn-ollama" onClick={handleSaveAtsSettings} style={{ marginBottom: '12px' }}>
+                  Save ATS Settings
+                </button>
+                <button type="button" className="btn-toggle active" onClick={handleFetchAtsJobs} disabled={atsFetching}>
+                  {atsFetching ? 'Fetching...' : 'Fetch Jobs'}
+                </button>
+
+                {atsJobs.length > 0 && (
+                  <div style={{ marginTop: '12px' }}>
+                    <h4 style={{ color: '#e2e8f0', marginBottom: '8px' }}>Available Jobs ({atsJobs.length})</h4>
+                    {atsJobs.slice(0, 10).map((job, i) => (
+                      <div key={i} style={{ background: '#18181b', padding: '10px', borderRadius: '6px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ color: '#e2e8f0', fontWeight: 500, fontSize: '13px' }}>{job.title}</div>
+                          <div style={{ color: '#71717a', fontSize: '11px' }}>{job.department} • {job.location} • {job.source}</div>
+                        </div>
+                        <button type="button" className="btn-ollama" onClick={() => handleImportAtsJob(job)}>Import</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="settings-section">
+                <h3>🔗 IMPORT FROM URL</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                  Paste any job posting URL to attempt extraction.
+                </p>
+                <div className="company-research-row">
+                  <input
+                    type="text"
+                    value={atsJobUrl}
+                    onChange={(e) => setAtsJobUrl(e.target.value)}
+                    placeholder="https://boards.greenhouse.io/company/jobs/123"
+                  />
+                  <button type="button" className="btn-ollama" onClick={handleParseJobUrl} disabled={atsFetching || !atsJobUrl.trim()}>
+                    Extract
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Compliance Tab */}
+          {activeTab === 'compliance' && (
+            <motion.div key="compliance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+              <div className="settings-section">
+                <h3>📋 RECORDING COMPLIANCE</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  Configure consent notices shown when recording starts.
+                </p>
+
+                <label>
+                  Compliance Mode
+                  <div className="radio-group">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="complianceMode"
+                        value="notify"
+                        checked={complianceSettings.mode === 'notify'}
+                        onChange={() => handleSaveCompliance({ mode: 'notify' })}
+                      />
+                      Notify only (show banner)
+                    </label>
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="complianceMode"
+                        value="acknowledge"
+                        checked={complianceSettings.mode === 'acknowledge'}
+                        onChange={() => handleSaveCompliance({ mode: 'acknowledge' })}
+                      />
+                      Require acknowledgment (must click)
+                    </label>
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="complianceMode"
+                        value="off"
+                        checked={complianceSettings.mode === 'off'}
+                        onChange={() => handleSaveCompliance({ mode: 'off' })}
+                      />
+                      Off (no consent notice)
+                    </label>
+                  </div>
+                </label>
+
+                <label style={{ marginTop: '12px' }}>
+                  Custom Consent Text
+                  <textarea
+                    value={complianceSettings.customText || ''}
+                    onChange={(e) => handleSaveCompliance({ customText: e.target.value })}
+                    placeholder="This interview is being recorded for review purposes."
+                    rows={3}
+                  />
+                </label>
+
+                <label className="checkbox-label" style={{ marginTop: '8px' }}>
+                  <input
+                    type="checkbox"
+                    checked={complianceSettings.prependToTranscript}
+                    onChange={(e) => handleSaveCompliance({ prependToTranscript: e.target.checked })}
+                  />
+                  Add consent notice to saved transcripts
+                </label>
+
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={complianceSettings.showTimestamp}
+                    onChange={(e) => handleSaveCompliance({ showTimestamp: e.target.checked })}
+                  />
+                  Include timestamp in notice
+                </label>
+              </div>
+
+              <div className="settings-section">
+                <h3>📜 RECORDING POLICY</h3>
+                <label>
+                  Policy Text (shown in consent dialog)
+                  <textarea
+                    value={complianceSettings.recordingPolicy || ''}
+                    onChange={(e) => handleSaveCompliance({ recordingPolicy: e.target.value })}
+                    placeholder="Your organization's recording policy..."
+                    rows={4}
+                  />
+                </label>
               </div>
             </motion.div>
           )}

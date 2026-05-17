@@ -1,0 +1,356 @@
+/* InterviewAI Browser Extension - Styles */
+/* Shared between popup and content script widget */
+
+/* ===== Popup Styles ===== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 380px;
+  min-height: 400px;
+  background: #18181b;
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+}
+
+.popup-container {
+  padding: 16px;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.popup-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f4f4f5;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3f3f46;
+  transition: background 0.3s;
+}
+
+.status-dot.active {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.popup-section {
+  margin-bottom: 14px;
+}
+
+.popup-label {
+  display: block;
+  margin-bottom: 10px;
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.popup-input,
+.popup-textarea {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.popup-input:focus,
+.popup-textarea:focus {
+  border-color: #6366f1;
+}
+
+.popup-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.popup-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.popup-btn {
+  padding: 8px 14px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.popup-btn:hover {
+  background: #3f3f46;
+}
+
+.popup-btn.primary {
+  flex: 1;
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: white;
+  font-weight: 600;
+}
+
+.popup-btn.primary:hover {
+  background: #4338ca;
+}
+
+.popup-btn.primary.active {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.popup-btn.small {
+  padding: 8px 10px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.popup-transcript {
+  background: #27272a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-height: 40px;
+  max-height: 80px;
+  overflow-y: auto;
+  color: #e2e8f0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.popup-response {
+  background: #1e1b4b;
+  border: 1px solid #312e81;
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-height: 60px;
+  max-height: 150px;
+  overflow-y: auto;
+  color: #c7d2fe;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.copy-btn {
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.placeholder {
+  color: #52525b;
+  font-style: italic;
+}
+
+.generating {
+  color: #818cf8;
+  animation: pulse 1s infinite;
+}
+
+.error {
+  color: #f87171;
+}
+
+/* ===== Content Script Widget Styles ===== */
+#interviewai-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 340px;
+  max-height: 500px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #e2e8f0;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+#interviewai-widget.iai-minimized {
+  width: 180px;
+  max-height: 40px;
+}
+
+.iai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #27272a;
+  cursor: move;
+  user-select: none;
+}
+
+.iai-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f4f4f5;
+}
+
+.iai-header-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.iai-btn-mini {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  background: #3f3f46;
+  color: #a1a1aa;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.iai-btn-mini:hover {
+  background: #52525b;
+  color: #e2e8f0;
+}
+
+.iai-body {
+  padding: 12px 14px;
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.iai-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.iai-btn {
+  padding: 6px 14px;
+  background: #4f46e5;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.iai-btn:hover {
+  background: #4338ca;
+}
+
+.iai-btn.iai-active {
+  background: #dc2626;
+}
+
+.iai-btn.iai-active:hover {
+  background: #b91c1c;
+}
+
+.iai-status {
+  font-size: 11px;
+  color: #71717a;
+}
+
+.iai-status.iai-recording {
+  color: #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+.iai-section {
+  margin-bottom: 10px;
+}
+
+.iai-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.iai-transcript {
+  background: #27272a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  min-height: 30px;
+  max-height: 60px;
+  overflow-y: auto;
+  color: #d4d4d8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.iai-response {
+  background: #1e1b4b;
+  border: 1px solid #312e81;
+  border-radius: 6px;
+  padding: 8px 10px;
+  min-height: 40px;
+  max-height: 120px;
+  overflow-y: auto;
+  color: #c7d2fe;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.iai-response.iai-generating {
+  color: #818cf8;
+  animation: pulse 1s infinite;
+}
+
+.iai-btn-copy {
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 4px;
+  color: #a1a1aa;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.iai-btn-copy:hover {
+  background: #3f3f46;
+  color: #e2e8f0;
+}

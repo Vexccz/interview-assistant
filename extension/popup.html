@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>InterviewAI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <h1>InterviewAI</h1>
+      <div class="status-dot" id="statusDot"></div>
+    </div>
+
+    <!-- Settings Section -->
+    <div class="popup-section" id="settingsSection">
+      <label class="popup-label">
+        API Base URL
+        <input type="text" id="apiBaseUrl" placeholder="https://api.openai.com/v1" class="popup-input">
+      </label>
+      <label class="popup-label">
+        API Key
+        <input type="password" id="apiKey" placeholder="sk-..." class="popup-input">
+      </label>
+      <label class="popup-label">
+        Model
+        <input type="text" id="model" placeholder="gpt-4" class="popup-input">
+      </label>
+      <label class="popup-label">
+        Context (Resume/Job Description)
+        <textarea id="context" placeholder="Paste your resume or job description..." class="popup-textarea" rows="3"></textarea>
+      </label>
+      <button id="saveSettings" class="popup-btn">Save Settings</button>
+    </div>
+
+    <!-- Controls -->
+    <div class="popup-controls">
+      <button id="toggleBtn" class="popup-btn primary">Start Listening</button>
+      <button id="settingsBtn" class="popup-btn small">⚙️</button>
+      <button id="clearBtn" class="popup-btn small">🗑️</button>
+    </div>
+
+    <!-- Transcript -->
+    <div class="popup-section">
+      <div class="section-label">Interviewer</div>
+      <div id="transcript" class="popup-transcript">
+        <span class="placeholder">Waiting for speech...</span>
+      </div>
+    </div>
+
+    <!-- Response -->
+    <div class="popup-section">
+      <div class="section-label">Suggested Response</div>
+      <div id="response" class="popup-response">
+        <span class="placeholder">Response will appear here...</span>
+      </div>
+      <button id="copyBtn" class="popup-btn small copy-btn" style="display:none;">📋 Copy</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

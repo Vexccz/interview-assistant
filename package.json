@@ -1,6 +1,6 @@
 {
   "name": "interview-assistant",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Real-time AI interview assistant with live transcription and smart response generation",
   "main": "electron/main.js",
   "scripts": {
@@ -19,6 +19,7 @@
   "author": "Vexccz",
   "license": "MIT",
   "dependencies": {
+    "@xenova/transformers": "^2.17.2",
     "electron-store": "8.2.0",
     "framer-motion": "^12.38.0",
     "jspdf": "^2.5.2",

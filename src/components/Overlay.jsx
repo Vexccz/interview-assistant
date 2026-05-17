@@ -8,7 +8,7 @@ const cardVariants = {
   exit: { opacity: 0, transition: { duration: 0.15 } }
 };
 
-function Overlay({ transcript, partialTranscript, response, isListening, isGenerating, questionType, confidence, questionTimer, mode, language, fontSize, currentSpeaker, answerScore }) {
+function Overlay({ transcript, partialTranscript, response, isListening, isGenerating, questionType, confidence, questionTimer, mode, language, fontSize, currentSpeaker, answerScore, interviewerMood, whisperStatus }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -74,6 +74,18 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
             {currentSpeaker === 'user' ? '🗣️ ' + t('you', language) : '🎤 ' + t('interviewer', language)}
           </span>
           <div className="section-header-right">
+            {/* Interviewer mood badge */}
+            {interviewerMood && interviewerMood.mood !== 'neutral' && (
+              <span className={`badge badge-mood badge-mood-${interviewerMood.mood}`} title={`Interviewer seems ${interviewerMood.mood}`}>
+                {interviewerMood.mood === 'engaged' ? '😊 Engaged' : '🤔 Challenging'}
+              </span>
+            )}
+            {/* Whisper status */}
+            {whisperStatus && whisperStatus.status === 'loading' && (
+              <span className="badge" style={{ background: '#1e1b4b', color: '#818cf8', fontSize: '10px' }}>
+                🧠 {whisperStatus.message}
+              </span>
+            )}
             {currentSpeaker && (
               <span className={`badge badge-speaker badge-speaker-${currentSpeaker}`}>
                 {currentSpeaker === 'user' ? 'You' : 'Interviewer'}

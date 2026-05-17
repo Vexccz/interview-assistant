@@ -32,6 +32,11 @@ import { EyeContactService } from './services/eyeContact';
 import { VoiceAnalysisService } from './services/voiceAnalysis';
 import { MeetingDetectorService } from './services/meetingDetector';
 import { SubscriptionService } from './services/subscription';
+import { WebRTCRecorderService } from './services/webrtcRecorder';
+import { WhisperSTTService } from './services/whisperSTT';
+import { InterviewerAnalyticsService } from './services/interviewerAnalytics';
+import { ComplianceService } from './services/compliance';
+import TeamDashboard from './components/TeamDashboard';
 import ragService from './services/rag';
 import { t } from './services/i18n';
 
@@ -45,6 +50,7 @@ const DEFAULT_SETTINGS = {
   llmModel: 'gpt-4',
   deepgramApiKey: '',
   useDeepgram: false,
+  useWhisperOffline: false,
   audioMode: 'mic', // 'mic' | 'system' | 'both'
   enableNoiseGate: true,
   responseMode: 'detailed', // 'concise' | 'detailed'
@@ -61,7 +67,9 @@ const DEFAULT_SETTINGS = {
   enableEyeContact: false,
   enableVoiceAnalysis: false,
   stripePublishableKey: '',
-  stripeCheckoutUrl: ''
+  stripeCheckoutUrl: '',
+  customModelId: '',
+  useCustomModel: false
 };
 
 const pageTransition = {
@@ -86,10 +94,16 @@ function App() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showTeamDashboard, setShowTeamDashboard] = useState(false);
   const [meetingApp, setMeetingApp] = useState(null);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [eyeContactWarning, setEyeContactWarning] = useState(null);
   const [voiceCoaching, setVoiceCoaching] = useState(null);
+  const [isCallRecording, setIsCallRecording] = useState(false);
+  const [callRecordingTime, setCallRecordingTime] = useState('');
+  const [interviewerMood, setInterviewerMood] = useState(null);
+  const [complianceBanner, setComplianceBanner] = useState(null);
+  const [whisperStatus, setWhisperStatus] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [partialTranscript, setPartialTranscript] = useState('');
   const [response, setResponse] = useState('');
@@ -116,6 +130,8 @@ function App() {
   const eyeContactRef = useRef(new EyeContactService());
   const voiceAnalysisRef = useRef(new VoiceAnalysisService());
   const meetingDetectorRef = useRef(new MeetingDetectorService());
+  const webrtcRecorderRef = useRef(new WebRTCRecorderService());
+  const interviewerAnalyticsRef = useRef(new InterviewerAnalyticsService());
   const questionBufferRef = useRef('');
   const silenceTimerRef = useRef(null);
   const questionTimerRef = useRef(null);
@@ -171,12 +187,15 @@ function App() {
 
   // Initialize LLM service
   useEffect(() => {
+    const model = (settings.useCustomModel && settings.customModelId) 
+      ? settings.customModelId 
+      : settings.llmModel;
     llmRef.current = new LLMService({
       apiKey: settings.llmApiKey,
       baseUrl: settings.llmBaseUrl,
-      model: settings.llmModel
+      model
     });
-  }, [settings.llmApiKey, settings.llmBaseUrl, settings.llmModel]);
+  }, [settings.llmApiKey, settings.llmBaseUrl, settings.llmModel, settings.useCustomModel, settings.customModelId]);
 
   // Update notification sound setting
   useEffect(() => {
@@ -258,6 +277,7 @@ function App() {
         if (showPrepChecklist) { setShowPrepChecklist(false); return; }
         if (showSalaryNegotiation) { setShowSalaryNegotiation(false); return; }
         if (showDashboard) { setShowDashboard(false); return; }
+        if (showTeamDashboard) { setShowTeamDashboard(false); return; }
         if (showPayment) { setShowPayment(false); return; }
         if (showUpgradeModal) { setShowUpgradeModal(false); return; }
         return;
@@ -332,6 +352,11 @@ function App() {
     // Stop coaching when generating (interviewer is done speaking)
     coachingRef.current.stop();
     setCoachingTip(null);
+
+    // Track interviewer analytics
+    interviewerAnalyticsRef.current.addQuestion(question);
+    const analysis = interviewerAnalyticsRef.current.getAnalysis();
+    setInterviewerMood(analysis);
 
     try {
       // Get RAG context if enabled
@@ -492,22 +517,50 @@ FEEDBACK: [one sentence on how to improve]`;
   // Start/stop listening based on mode
   useEffect(() => {
     if (mode === 'listening') {
-      sttRef.current = new SpeechToText({
-        onTranscript: handleTranscript,
-        onPartial: handlePartial,
-        useDeepgram: settings.useDeepgram,
-        deepgramApiKey: settings.deepgramApiKey,
-        audioMode: settings.audioMode,
-        enableNoiseGate: settings.enableNoiseGate,
-        language: settings.language
-      });
-      sttRef.current.start();
+      // Use Whisper offline if selected
+      if (settings.useWhisperOffline) {
+        const whisperSTT = new WhisperSTTService({
+          onTranscript: handleTranscript,
+          onPartial: handlePartial,
+          onModelStatus: (status) => setWhisperStatus(status),
+          language: settings.language
+        });
+        sttRef.current = whisperSTT;
+        whisperSTT.start().catch(err => {
+          console.error('Whisper start failed:', err);
+          // Fallback to Web Speech
+          sttRef.current = new SpeechToText({
+            onTranscript: handleTranscript,
+            onPartial: handlePartial,
+            useDeepgram: false,
+            deepgramApiKey: '',
+            audioMode: settings.audioMode,
+            enableNoiseGate: settings.enableNoiseGate,
+            language: settings.language
+          });
+          sttRef.current.start();
+        });
+      } else {
+        sttRef.current = new SpeechToText({
+          onTranscript: handleTranscript,
+          onPartial: handlePartial,
+          useDeepgram: settings.useDeepgram,
+          deepgramApiKey: settings.deepgramApiKey,
+          audioMode: settings.audioMode,
+          enableNoiseGate: settings.enableNoiseGate,
+          language: settings.language
+        });
+        sttRef.current.start();
+      }
 
       // Start audio recording
       audioRecorderRef.current.start();
 
       // Start diarization
       diarizationRef.current.start(handleSpeakerChange);
+
+      // Start interviewer analytics
+      interviewerAnalyticsRef.current.start();
 
       // Start analytics if not started
       if (!analyticsRef.current.startTime) {
@@ -526,6 +579,7 @@ FEEDBACK: [one sentence on how to improve]`;
       if (mode === 'stopped') {
         audioRecorderRef.current.stop();
         diarizationRef.current.stop();
+        interviewerAnalyticsRef.current.stop();
       }
     }
 
@@ -534,7 +588,7 @@ FEEDBACK: [one sentence on how to improve]`;
         sttRef.current.stop();
       }
     };
-  }, [mode, handleTranscript, handlePartial, handleSpeakerChange, settings.useDeepgram, settings.deepgramApiKey, settings.audioMode, settings.enableNoiseGate, settings.language]);
+  }, [mode, handleTranscript, handlePartial, handleSpeakerChange, settings.useDeepgram, settings.deepgramApiKey, settings.audioMode, settings.enableNoiseGate, settings.language, settings.useWhisperOffline]);
 
   const handleCycleMode = () => {
     setMode(prev => {
@@ -553,9 +607,43 @@ FEEDBACK: [one sentence on how to improve]`;
         setShowUpgradeModal(true);
         return;
       }
+      // Show compliance banner if needed
+      if (mode === 'stopped' && ComplianceService.needsConsent()) {
+        if (ComplianceService.requiresAcknowledgment()) {
+          setComplianceBanner({ text: ComplianceService.getConsentText(), requireAck: true });
+          return;
+        } else {
+          setComplianceBanner({ text: ComplianceService.getConsentText(), requireAck: false });
+          ComplianceService.recordConsent();
+          setTimeout(() => setComplianceBanner(null), 5000);
+        }
+      }
       setMode('listening');
     } else {
       setMode('paused');
+    }
+  };
+
+  const handleAcknowledgeCompliance = () => {
+    ComplianceService.recordConsent();
+    setComplianceBanner(null);
+    setMode('listening');
+  };
+
+  // WebRTC call recording
+  const handleToggleCallRecording = async () => {
+    if (isCallRecording) {
+      await webrtcRecorderRef.current.save();
+      setIsCallRecording(false);
+      setCallRecordingTime('');
+    } else {
+      try {
+        webrtcRecorderRef.current.onTimerUpdate = (time) => setCallRecordingTime(time);
+        await webrtcRecorderRef.current.start();
+        setIsCallRecording(true);
+      } catch (err) {
+        console.error('Call recording failed:', err);
+      }
     }
   };
 
@@ -609,6 +697,16 @@ FEEDBACK: [one sentence on how to improve]`;
     setCoachingTip(null);
     setEyeContactWarning(null);
     setVoiceCoaching(null);
+    setInterviewerMood(null);
+    setComplianceBanner(null);
+
+    // Stop call recording if active
+    if (isCallRecording) {
+      webrtcRecorderRef.current.save().then(() => {
+        setIsCallRecording(false);
+        setCallRecordingTime('');
+      });
+    }
 
     // Record usage for subscription tracking
     SubscriptionService.recordInterview();
@@ -691,6 +789,10 @@ FEEDBACK: [one sentence on how to improve]`;
         onPrepChecklist={() => setShowPrepChecklist(true)}
         onSalaryNegotiation={() => setShowSalaryNegotiation(true)}
         onDashboard={() => setShowDashboard(true)}
+        onTeamDashboard={() => setShowTeamDashboard(true)}
+        onToggleCallRecording={handleToggleCallRecording}
+        isCallRecording={isCallRecording}
+        callRecordingTime={callRecordingTime}
         language={settings.language}
         meetingApp={meetingApp}
         isScreenSharing={isScreenSharing}
@@ -771,6 +873,12 @@ FEEDBACK: [one sentence on how to improve]`;
               onClose={() => setShowDashboard(false)}
             />
           </motion.div>
+        ) : showTeamDashboard ? (
+          <motion.div key="teamDashboard" {...pageTransition}>
+            <TeamDashboard
+              onClose={() => setShowTeamDashboard(false)}
+            />
+          </motion.div>
         ) : showPayment ? (
           <motion.div key="payment" {...pageTransition}>
             <PaymentPage
@@ -794,7 +902,23 @@ FEEDBACK: [one sentence on how to improve]`;
               fontSize={settings.fontSize}
               currentSpeaker={currentSpeaker}
               answerScore={answerScore}
+              interviewerMood={interviewerMood}
+              whisperStatus={whisperStatus}
             />
+            {/* Compliance banner */}
+            {complianceBanner && (
+              <div className="coaching-bar coaching-warning" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>📹 {complianceBanner.text}</span>
+                {complianceBanner.requireAck && (
+                  <button
+                    onClick={handleAcknowledgeCompliance}
+                    style={{ background: '#4ade80', color: '#000', border: 'none', padding: '4px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}
+                  >
+                    I Acknowledge
+                  </button>
+                )}
+              </div>
+            )}
             {/* Coaching bar */}
             {coachingTip && coachingTip.tip && (
               <div className={`coaching-bar coaching-${coachingTip.type}`}>
