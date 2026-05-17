@@ -3,26 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { t } from '../services/i18n';
 
 const cardVariants = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 200, damping: 20 } },
-  exit: { opacity: 0, y: -10, transition: { type: 'tween', duration: 0.2 } }
-};
-
-const textLineVariants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, transition: { type: 'tween', duration: 0.15 } }
-};
-
-const staggerContainer = {
-  animate: {
-    transition: { staggerChildren: 0.03 }
-  }
-};
-
-const pulseAnimation = {
-  scale: [1, 1.3, 1],
-  transition: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.15 } }
 };
 
 function Overlay({ transcript, partialTranscript, response, isListening, isGenerating, questionType, confidence, questionTimer, mode, language, fontSize }) {
@@ -47,13 +30,7 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
   return (
     <div className="overlay" style={{ fontSize: `${fontSize}px` }}>
       {/* Question section */}
-      <motion.div
-        className="section"
-        variants={cardVariants}
-        initial="initial"
-        animate="animate"
-        layout
-      >
+      <div className="section">
         <div className="section-header">
           <span className="section-label">{t('interviewer', language)}</span>
           <div className="section-header-right">
@@ -62,20 +39,18 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
             )}
             {isListening && (
               <span className="listening-indicator">
-                <motion.span
-                  className="status-dot"
-                  animate={pulseAnimation}
-                  style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: '#ef4444', marginRight: 6 }}
+                <span
+                  style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', backgroundColor: '#22c55e', marginRight: 5 }}
                 />
                 {t('listening', language)}
               </span>
             )}
             {questionTimer > 0 && (
-              <span className="timer-badge">⏱ {formatTimer(questionTimer)}</span>
+              <span className="timer-badge">{formatTimer(questionTimer)}</span>
             )}
           </div>
         </div>
-        <motion.div className="section-content transcript-content" layout>
+        <div className="section-content transcript-content">
           <AnimatePresence mode="wait">
             {transcript && (
               <motion.span
@@ -83,7 +58,7 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
                 className="final-text"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.2 }}
               >
                 {transcript}
               </motion.span>
@@ -95,19 +70,11 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
               {isListening ? t('listeningPlaceholder', language) : t('startPlaceholder', language)}
             </span>
           )}
-        </motion.div>
-      </motion.div>
-
-      <div className="divider" />
+        </div>
+      </div>
 
       {/* Response section */}
-      <motion.div
-        className="section"
-        variants={cardVariants}
-        initial="initial"
-        animate="animate"
-        layout
-      >
+      <div className="section">
         <div className="section-header">
           <span className="section-label">{t('suggestedResponse', language)}</span>
           <div className="section-header-right">
@@ -118,36 +85,33 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
             )}
             {isGenerating && <span className="generating-indicator">{t('generating', language)}</span>}
             {response && !isGenerating && (
-              <motion.button
+              <button
                 className="btn-copy"
                 onClick={handleCopy}
                 title={t('copy', language)}
-                whileTap={{ scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               >
                 {copied ? t('copied', language) : t('copy', language)}
-              </motion.button>
+              </button>
             )}
           </div>
         </div>
-        <motion.div className="section-content response-content" layout>
+        <div className="section-content response-content">
           <AnimatePresence mode="wait">
             {response ? (
               <motion.div
                 key="response"
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
               >
                 {response.split('\n').map((line, i) => (
-                  <motion.span
+                  <span
                     key={i}
                     className="response-text"
-                    variants={textLineVariants}
                     style={{ display: 'block' }}
                   >
                     {line}
-                  </motion.span>
+                  </span>
                 ))}
               </motion.div>
             ) : (
@@ -162,18 +126,18 @@ function Overlay({ transcript, partialTranscript, response, isListening, isGener
               </motion.span>
             )}
           </AnimatePresence>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
 
-      {/* Mode indicator at bottom */}
+      {/* Paused banner */}
       <AnimatePresence>
         {mode === 'paused' && (
           <motion.div
             className="mode-banner paused-banner"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
           >
             {t('paused', language)} — Ctrl+Shift+Space to resume
           </motion.div>

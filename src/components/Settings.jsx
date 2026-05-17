@@ -3,18 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { t, getLanguages } from '../services/i18n';
 import { LLMService } from '../services/llm';
 
-const slideIn = {
-  initial: { x: 300, opacity: 0 },
-  animate: { x: 0, opacity: 1, transition: { type: 'spring', stiffness: 200, damping: 20 } },
-  exit: { x: 300, opacity: 0, transition: { type: 'tween', duration: 0.2 } }
-};
-
-const tabContent = {
-  initial: { opacity: 0, x: 20 },
-  animate: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },
-  exit: { opacity: 0, x: -20, transition: { type: 'tween', duration: 0.15 } }
-};
-
 function Settings({ settings, onSave, onClose, language }) {
   const [form, setForm] = useState({ ...settings });
   const [activeTab, setActiveTab] = useState('general');
@@ -29,7 +17,6 @@ function Settings({ settings, onSave, onClose, language }) {
     onSave(form);
   };
 
-  // Check Ollama status
   useEffect(() => {
     const checkOllama = async () => {
       const llm = new LLMService({});
@@ -55,23 +42,12 @@ function Settings({ settings, onSave, onClose, language }) {
   ];
 
   return (
-    <motion.div
-      className="settings-panel"
-      variants={slideIn}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-    >
+    <div className="settings-panel">
       <div className="settings-header">
         <h2>{t('settings', language)}</h2>
-        <motion.button
-          className="btn-icon"
-          onClick={onClose}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-        >
+        <button className="btn-icon" onClick={onClose}>
           ✕
-        </motion.button>
+        </button>
       </div>
 
       {/* Tabs */}
@@ -81,24 +57,8 @@ function Settings({ settings, onSave, onClose, language }) {
             key={tab.id}
             className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
-            style={{ position: 'relative' }}
           >
             {tab.label}
-            {activeTab === tab.id && (
-              <motion.div
-                layoutId="settings-tab-indicator"
-                style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 2,
-                  backgroundColor: 'var(--accent-color, #3b82f6)',
-                  borderRadius: 1
-                }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
-            )}
           </button>
         ))}
       </div>
@@ -107,7 +67,7 @@ function Settings({ settings, onSave, onClose, language }) {
         <AnimatePresence mode="wait">
           {/* General Tab */}
           {activeTab === 'general' && (
-            <motion.div key="general" variants={tabContent} initial="initial" animate="animate" exit="exit">
+            <motion.div key="general" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
               <div className="settings-section">
                 <h3>{t('llmConfig', language)}</h3>
                 <label>
@@ -138,7 +98,6 @@ function Settings({ settings, onSave, onClose, language }) {
                   />
                 </label>
 
-                {/* Ollama preset */}
                 <div className="ollama-section">
                   <button type="button" className="btn-ollama" onClick={handleOllamaPreset}>
                     {t('ollamaPreset', language)}
@@ -213,7 +172,7 @@ function Settings({ settings, onSave, onClose, language }) {
 
           {/* Audio Tab */}
           {activeTab === 'audio' && (
-            <motion.div key="audio" variants={tabContent} initial="initial" animate="animate" exit="exit">
+            <motion.div key="audio" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
               <div className="settings-section">
                 <h3>{t('audioSource', language)}</h3>
                 <div className="radio-group">
@@ -289,7 +248,7 @@ function Settings({ settings, onSave, onClose, language }) {
 
           {/* AI Tab */}
           {activeTab === 'ai' && (
-            <motion.div key="ai" variants={tabContent} initial="initial" animate="animate" exit="exit">
+            <motion.div key="ai" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
               <div className="settings-section">
                 <h3>{t('responseMode', language)}</h3>
                 <div className="radio-group">
@@ -344,7 +303,7 @@ function Settings({ settings, onSave, onClose, language }) {
 
           {/* Display Tab */}
           {activeTab === 'display' && (
-            <motion.div key="display" variants={tabContent} initial="initial" animate="animate" exit="exit">
+            <motion.div key="display" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
               <div className="settings-section">
                 <h3>{t('fontSize', language)}</h3>
                 <div className="slider-group">
@@ -355,15 +314,7 @@ function Settings({ settings, onSave, onClose, language }) {
                     value={form.fontSize}
                     onChange={(e) => handleChange('fontSize', parseInt(e.target.value))}
                   />
-                  <motion.span
-                    className="slider-value"
-                    key={form.fontSize}
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  >
-                    {form.fontSize}px
-                  </motion.span>
+                  <span className="slider-value">{form.fontSize}px</span>
                 </div>
               </div>
 
@@ -377,15 +328,7 @@ function Settings({ settings, onSave, onClose, language }) {
                     value={Math.round(form.opacity * 100)}
                     onChange={(e) => handleChange('opacity', parseInt(e.target.value) / 100)}
                   />
-                  <motion.span
-                    className="slider-value"
-                    key={Math.round(form.opacity * 100)}
-                    initial={{ opacity: 0, y: -5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  >
-                    {Math.round(form.opacity * 100)}%
-                  </motion.span>
+                  <span className="slider-value">{Math.round(form.opacity * 100)}%</span>
                 </div>
               </div>
 
@@ -419,28 +362,15 @@ function Settings({ settings, onSave, onClose, language }) {
         </AnimatePresence>
 
         <div className="settings-actions">
-          <motion.button
-            type="submit"
-            className="btn-save"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-          >
+          <button type="submit" className="btn-save">
             {t('save', language)}
-          </motion.button>
-          <motion.button
-            type="button"
-            className="btn-cancel"
-            onClick={onClose}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-          >
+          </button>
+          <button type="button" className="btn-cancel" onClick={onClose}>
             {t('cancel', language)}
-          </motion.button>
+          </button>
         </div>
       </form>
-    </motion.div>
+    </div>
   );
 }
 
