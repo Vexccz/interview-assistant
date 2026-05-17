@@ -1,0 +1,12 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  setClickThrough: (value) => ipcRenderer.invoke('set-click-through', value),
+  minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  onToggleListening: (callback) => {
+    ipcRenderer.on('toggle-listening', callback);
+    return () => ipcRenderer.removeListener('toggle-listening', callback);
+  }
+});
