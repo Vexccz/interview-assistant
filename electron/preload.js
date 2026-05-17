@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
   setClickThrough: (value) => ipcRenderer.invoke('set-click-through', value),
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
+  getDesktopSources: () => ipcRenderer.invoke('get-desktop-sources'),
   onToggleListening: (callback) => {
     ipcRenderer.on('toggle-listening', callback);
     return () => ipcRenderer.removeListener('toggle-listening', callback);

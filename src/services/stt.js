@@ -2,17 +2,23 @@
 // Default: Web Speech API (free, no key needed)
 // Optional: Deepgram streaming API (requires API key)
 
+import { AudioCapture } from './audio.js';
+
 export class SpeechToText {
-  constructor({ onTranscript, onPartial, useDeepgram = false, deepgramApiKey = '' }) {
+  constructor({ onTranscript, onPartial, useDeepgram = false, deepgramApiKey = '', audioMode = 'mic', enableNoiseGate = true, language = 'en' }) {
     this.onTranscript = onTranscript;
     this.onPartial = onPartial;
     this.useDeepgram = useDeepgram && !!deepgramApiKey;
     this.deepgramApiKey = deepgramApiKey;
+    this.audioMode = audioMode;
+    this.enableNoiseGate = enableNoiseGate;
+    this.language = language;
     this.isListening = false;
     this.recognition = null;
     this.dgSocket = null;
     this.mediaStream = null;
     this.mediaRecorder = null;
+    this.audioCapture = new AudioCapture();
   }
 
   async start() {
@@ -47,6 +53,8 @@ export class SpeechToText {
       this.mediaStream.getTracks().forEach(t => t.stop());
       this.mediaStream = null;
     }
+
+    this.audioCapture.stop();
   }
 
   // Web Speech API (free, built-in)
@@ -60,7 +68,7 @@ export class SpeechToText {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
-    this.recognition.lang = 'en-US';
+    this.recognition.lang = this.language === 'bm' ? 'ms-MY' : 'en-US';
 
     this.recognition.onresult = (event) => {
       let interimTranscript = '';
@@ -95,7 +103,11 @@ export class SpeechToText {
       if (this.isListening) {
         setTimeout(() => {
           if (this.isListening) {
-            this.recognition.start();
+            try {
+              this.recognition.start();
+            } catch (e) {
+              // Already started
+            }
           }
         }, 100);
       }
@@ -107,9 +119,10 @@ export class SpeechToText {
   // Deepgram streaming API
   async startDeepgram() {
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaStream = await this.audioCapture.getStream(this.audioMode, this.enableNoiseGate);
 
-      const dgUrl = 'wss://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&interim_results=true&smart_format=true';
+      const lang = this.language === 'bm' ? 'ms' : 'en';
+      const dgUrl = `wss://api.deepgram.com/v1/listen?model=nova-2&language=${lang}&punctuate=true&interim_results=true&smart_format=true`;
 
       this.dgSocket = new WebSocket(dgUrl, ['token', this.deepgramApiKey]);
 

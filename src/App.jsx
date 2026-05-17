@@ -2,39 +2,72 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Overlay from './components/Overlay';
 import Settings from './components/Settings';
 import Controls from './components/Controls';
+import QuestionBank from './components/QuestionBank';
+import Analytics from './components/Analytics';
 import { SpeechToText } from './services/stt';
 import { LLMService } from './services/llm';
+import { AnalyticsService } from './services/analytics';
+import { TranscriptService } from './services/transcript';
+import { t } from './services/i18n';
+
+const DEFAULT_SETTINGS = {
+  resume: '',
+  jobDescription: '',
+  companyInfo: '',
+  llmApiKey: '',
+  llmBaseUrl: 'https://api.openai.com/v1',
+  llmModel: 'gpt-4',
+  deepgramApiKey: '',
+  useDeepgram: false,
+  audioMode: 'mic', // 'mic' | 'system' | 'both'
+  enableNoiseGate: true,
+  responseMode: 'detailed', // 'concise' | 'detailed'
+  useStar: true,
+  bulletMode: false,
+  fontSize: 14,
+  opacity: 0.85,
+  theme: 'dark',
+  language: 'en'
+};
 
 function App() {
-  const [isListening, setIsListening] = useState(false);
+  const [mode, setMode] = useState('stopped'); // 'stopped' | 'listening' | 'paused' | 'hidden'
   const [showSettings, setShowSettings] = useState(false);
+  const [showQuestionBank, setShowQuestionBank] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [partialTranscript, setPartialTranscript] = useState('');
   const [response, setResponse] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [settings, setSettings] = useState({
-    resume: '',
-    jobDescription: '',
-    companyInfo: '',
-    llmApiKey: '',
-    llmBaseUrl: 'https://api.openai.com/v1',
-    llmModel: 'gpt-4',
-    deepgramApiKey: '',
-    useDeepgram: false
-  });
+  const [questionType, setQuestionType] = useState(null);
+  const [confidence, setConfidence] = useState(null);
+  const [questionTimer, setQuestionTimer] = useState(0);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [conversationHistory, setConversationHistory] = useState([]);
 
   const sttRef = useRef(null);
   const llmRef = useRef(null);
+  const analyticsRef = useRef(new AnalyticsService());
+  const transcriptRef = useRef(new TranscriptService());
   const questionBufferRef = useRef('');
   const silenceTimerRef = useRef(null);
+  const questionTimerRef = useRef(null);
+
+  const isListening = mode === 'listening';
 
   // Load settings on mount
   useEffect(() => {
     const loadSettings = async () => {
       if (window.electronAPI) {
         const saved = await window.electronAPI.getSettings();
-        if (saved) setSettings(saved);
+        if (saved) setSettings(prev => ({ ...DEFAULT_SETTINGS, ...saved }));
+      } else {
+        const saved = localStorage.getItem('interview-settings');
+        if (saved) {
+          try {
+            setSettings(prev => ({ ...DEFAULT_SETTINGS, ...JSON.parse(saved) }));
+          } catch (e) {}
+        }
       }
     };
     loadSettings();
@@ -49,15 +82,38 @@ function App() {
     });
   }, [settings.llmApiKey, settings.llmBaseUrl, settings.llmModel]);
 
-  // Listen for global shortcut
+  // Listen for global shortcut - cycle modes
   useEffect(() => {
     if (window.electronAPI) {
       const cleanup = window.electronAPI.onToggleListening(() => {
-        setIsListening(prev => !prev);
+        setMode(prev => {
+          if (prev === 'stopped') return 'listening';
+          if (prev === 'listening') return 'paused';
+          if (prev === 'paused') return 'hidden';
+          if (prev === 'hidden') return 'listening';
+          return 'listening';
+        });
       });
       return cleanup;
     }
   }, []);
+
+  // Question timer
+  useEffect(() => {
+    if (isListening) {
+      questionTimerRef.current = setInterval(() => {
+        setQuestionTimer(analyticsRef.current.getQuestionTimer());
+      }, 1000);
+    } else {
+      if (questionTimerRef.current) {
+        clearInterval(questionTimerRef.current);
+        questionTimerRef.current = null;
+      }
+    }
+    return () => {
+      if (questionTimerRef.current) clearInterval(questionTimerRef.current);
+    };
+  }, [isListening]);
 
   // Generate response when question is complete
   const generateResponse = useCallback(async (question) => {
@@ -67,7 +123,7 @@ function App() {
     setResponse('');
 
     try {
-      const fullResponse = await llmRef.current.generateResponse({
+      const result = await llmRef.current.generateResponse({
         question,
         context: {
           resume: settings.resume,
@@ -75,14 +131,29 @@ function App() {
           companyInfo: settings.companyInfo,
           conversationHistory
         },
+        responseMode: settings.responseMode,
+        useStar: settings.useStar,
+        bulletMode: settings.bulletMode,
+        language: settings.language,
         onChunk: (chunk, full) => {
           setResponse(full);
         },
-        onDone: (full) => {
+        onDone: (full, meta) => {
           setIsGenerating(false);
+          setQuestionType(meta.questionType);
+          setConfidence(meta.confidence);
           setConversationHistory(prev => [...prev, { question, response: full }]);
+
+          // Record in analytics and transcript
+          analyticsRef.current.recordQuestion(question, meta.questionType, meta.confidence);
+          transcriptRef.current.addEntry(question, full, meta.questionType);
         }
       });
+
+      if (result) {
+        setQuestionType(result.questionType);
+        setConfidence(result.confidence);
+      }
     } catch (err) {
       console.error('LLM error:', err);
       setResponse(`Error: ${err.message}`);
@@ -113,16 +184,25 @@ function App() {
     setPartialTranscript(text);
   }, []);
 
-  // Start/stop listening
+  // Start/stop listening based on mode
   useEffect(() => {
-    if (isListening) {
+    if (mode === 'listening') {
       sttRef.current = new SpeechToText({
         onTranscript: handleTranscript,
         onPartial: handlePartial,
         useDeepgram: settings.useDeepgram,
-        deepgramApiKey: settings.deepgramApiKey
+        deepgramApiKey: settings.deepgramApiKey,
+        audioMode: settings.audioMode,
+        enableNoiseGate: settings.enableNoiseGate,
+        language: settings.language
       });
       sttRef.current.start();
+
+      // Start analytics if not started
+      if (!analyticsRef.current.startTime) {
+        analyticsRef.current.start();
+        transcriptRef.current.start();
+      }
     } else {
       if (sttRef.current) {
         sttRef.current.stop();
@@ -138,16 +218,32 @@ function App() {
         sttRef.current.stop();
       }
     };
-  }, [isListening, handleTranscript, handlePartial, settings.useDeepgram, settings.deepgramApiKey]);
+  }, [mode, handleTranscript, handlePartial, settings.useDeepgram, settings.deepgramApiKey, settings.audioMode, settings.enableNoiseGate, settings.language]);
+
+  const handleCycleMode = () => {
+    setMode(prev => {
+      if (prev === 'stopped') return 'listening';
+      if (prev === 'listening') return 'paused';
+      if (prev === 'paused') return 'hidden';
+      if (prev === 'hidden') return 'listening';
+      return 'listening';
+    });
+  };
 
   const handleToggleListening = () => {
-    setIsListening(prev => !prev);
+    if (mode === 'stopped' || mode === 'paused' || mode === 'hidden') {
+      setMode('listening');
+    } else {
+      setMode('paused');
+    }
   };
 
   const handleClearTranscript = () => {
     setTranscript('');
     setPartialTranscript('');
     setResponse('');
+    setQuestionType(null);
+    setConfidence(null);
     questionBufferRef.current = '';
   };
 
@@ -155,18 +251,61 @@ function App() {
     setSettings(newSettings);
     if (window.electronAPI) {
       await window.electronAPI.saveSettings(newSettings);
+    } else {
+      localStorage.setItem('interview-settings', JSON.stringify(newSettings));
     }
     setShowSettings(false);
   };
 
+  const handleSaveTranscript = () => {
+    transcriptRef.current.download('md');
+  };
+
+  const handlePracticeQuestion = (question) => {
+    setShowQuestionBank(false);
+    setTranscript(question);
+    questionBufferRef.current = '';
+    generateResponse(question);
+  };
+
+  const handleEndInterview = () => {
+    setMode('stopped');
+    setShowAnalytics(true);
+  };
+
+  // Apply theme and display settings
+  const themeClass = settings.theme === 'light' ? 'theme-light' : 'theme-dark';
+  const containerStyle = {
+    '--overlay-opacity': settings.opacity,
+    '--font-size': `${settings.fontSize}px`
+  };
+
+  // Hidden mode - minimal UI
+  if (mode === 'hidden') {
+    return (
+      <div className={`app-container ${themeClass} mode-hidden`} style={containerStyle}>
+        <div className="hidden-indicator" onClick={handleCycleMode}>
+          <span>{t('hidden', settings.language)}</span>
+          <span className="hidden-hint">Ctrl+Shift+Space</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="app-container">
+    <div className={`app-container ${themeClass}`} style={containerStyle}>
       <Controls
+        mode={mode}
         isListening={isListening}
         onToggle={handleToggleListening}
+        onCycleMode={handleCycleMode}
         onSettings={() => setShowSettings(true)}
         onMinimize={() => window.electronAPI?.minimizeWindow()}
         onClear={handleClearTranscript}
+        onSaveTranscript={handleSaveTranscript}
+        onQuestionBank={() => setShowQuestionBank(true)}
+        onAnalytics={handleEndInterview}
+        language={settings.language}
       />
 
       {showSettings ? (
@@ -174,6 +313,19 @@ function App() {
           settings={settings}
           onSave={handleSaveSettings}
           onClose={() => setShowSettings(false)}
+          language={settings.language}
+        />
+      ) : showQuestionBank ? (
+        <QuestionBank
+          onClose={() => setShowQuestionBank(false)}
+          onPractice={handlePracticeQuestion}
+          language={settings.language}
+        />
+      ) : showAnalytics ? (
+        <Analytics
+          analytics={analyticsRef.current.getSummary()}
+          onClose={() => setShowAnalytics(false)}
+          language={settings.language}
         />
       ) : (
         <Overlay
@@ -182,6 +334,12 @@ function App() {
           response={response}
           isListening={isListening}
           isGenerating={isGenerating}
+          questionType={questionType}
+          confidence={confidence}
+          questionTimer={questionTimer}
+          mode={mode}
+          language={settings.language}
+          fontSize={settings.fontSize}
         />
       )}
     </div>

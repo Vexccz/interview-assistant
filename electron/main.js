@@ -1,15 +1,14 @@
-const { app, BrowserWindow, globalShortcut, ipcMain } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, desktopCapturer } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 
 const store = new Store();
 let mainWindow = null;
-let isOverlayMode = false;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 400,
-    height: 600,
+    width: 420,
+    height: 650,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -41,7 +40,7 @@ function createWindow() {
 app.whenReady().then(() => {
   createWindow();
 
-  // Global shortcut: Ctrl+Shift+Space to toggle listening
+  // Global shortcut: Ctrl+Shift+Space to cycle modes
   globalShortcut.register('CommandOrControl+Shift+Space', () => {
     if (mainWindow) {
       mainWindow.webContents.send('toggle-listening');
@@ -69,7 +68,16 @@ ipcMain.handle('get-settings', () => {
     llmBaseUrl: 'https://api.openai.com/v1',
     llmModel: 'gpt-4',
     deepgramApiKey: '',
-    useDeepgram: false
+    useDeepgram: false,
+    audioMode: 'mic',
+    enableNoiseGate: true,
+    responseMode: 'detailed',
+    useStar: true,
+    bulletMode: false,
+    fontSize: 14,
+    opacity: 0.85,
+    theme: 'dark',
+    language: 'en'
   });
 });
 
@@ -87,5 +95,22 @@ ipcMain.handle('set-click-through', (event, clickThrough) => {
 ipcMain.handle('minimize-window', () => {
   if (mainWindow) {
     mainWindow.minimize();
+  }
+});
+
+// Desktop capturer for system audio
+ipcMain.handle('get-desktop-sources', async () => {
+  try {
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: 0, height: 0 }
+    });
+    return sources.map(source => ({
+      id: source.id,
+      name: source.name
+    }));
+  } catch (err) {
+    console.error('Failed to get desktop sources:', err);
+    return [];
   }
 });
