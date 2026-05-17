@@ -9,6 +9,9 @@ import MockInterview from './components/MockInterview';
 import History from './components/History';
 import KeyboardShortcuts from './components/KeyboardShortcuts';
 import UpdateBanner from './components/UpdateBanner';
+import Onboarding from './components/Onboarding';
+import ReportCard from './components/ReportCard';
+import PrepChecklist from './components/PrepChecklist';
 import { SpeechToText } from './services/stt';
 import { LLMService } from './services/llm';
 import { AnalyticsService } from './services/analytics';
@@ -19,6 +22,8 @@ import { NotificationSoundService } from './services/notificationSound';
 import { HistoryService } from './services/history';
 import { ProfilesService } from './services/profiles';
 import { PdfExportService } from './services/pdfExport';
+import { CoachingService } from './services/coaching';
+import ragService from './services/rag';
 import { t } from './services/i18n';
 
 const DEFAULT_SETTINGS = {
@@ -41,7 +46,9 @@ const DEFAULT_SETTINGS = {
   theme: 'dark',
   language: 'en',
   enableNotificationSound: true,
-  activeProfileId: null
+  activeProfileId: null,
+  enableRAG: false,
+  enableCoaching: true
 };
 
 const pageTransition = {
@@ -59,6 +66,9 @@ function App() {
   const [showMockInterview, setShowMockInterview] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showReportCard, setShowReportCard] = useState(false);
+  const [showPrepChecklist, setShowPrepChecklist] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [partialTranscript, setPartialTranscript] = useState('');
   const [response, setResponse] = useState('');
@@ -71,6 +81,7 @@ function App() {
   const [currentSpeaker, setCurrentSpeaker] = useState(null);
   const [answerScore, setAnswerScore] = useState(null);
   const [transcriptEntries, setTranscriptEntries] = useState([]);
+  const [coachingTip, setCoachingTip] = useState(null);
 
   const sttRef = useRef(null);
   const llmRef = useRef(null);
@@ -79,11 +90,20 @@ function App() {
   const audioRecorderRef = useRef(new AudioRecorderService());
   const diarizationRef = useRef(new DiarizationService());
   const notificationRef = useRef(new NotificationSoundService());
+  const coachingRef = useRef(new CoachingService());
   const questionBufferRef = useRef('');
   const silenceTimerRef = useRef(null);
   const questionTimerRef = useRef(null);
 
   const isListening = mode === 'listening';
+
+  // Check onboarding on mount
+  useEffect(() => {
+    const onboardingDone = localStorage.getItem('onboarding_complete');
+    if (!onboardingDone) {
+      setShowOnboarding(true);
+    }
+  }, []);
 
   // Load settings on mount
   useEffect(() => {
@@ -151,6 +171,8 @@ function App() {
         if (showAnalytics) { setShowAnalytics(false); return; }
         if (showMockInterview) { setShowMockInterview(false); return; }
         if (showHistory) { setShowHistory(false); return; }
+        if (showReportCard) { setShowReportCard(false); return; }
+        if (showPrepChecklist) { setShowPrepChecklist(false); return; }
         return;
       }
 
@@ -183,13 +205,17 @@ function App() {
             e.preventDefault();
             handleClearTranscript();
             break;
+          case 'p':
+            e.preventDefault();
+            setShowPrepChecklist(prev => !prev);
+            break;
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showShortcuts, showSettings, showQuestionBank, showAnalytics, showMockInterview, showHistory]);
+  }, [showShortcuts, showSettings, showQuestionBank, showAnalytics, showMockInterview, showHistory, showReportCard, showPrepChecklist]);
 
   // Question timer
   useEffect(() => {
@@ -216,13 +242,23 @@ function App() {
     setResponse('');
     setAnswerScore(null);
 
+    // Stop coaching when generating (interviewer is done speaking)
+    coachingRef.current.stop();
+    setCoachingTip(null);
+
     try {
+      // Get RAG context if enabled
+      let ragContext = '';
+      if (settings.enableRAG) {
+        ragContext = ragService.formatForContext(question);
+      }
+
       const result = await llmRef.current.generateResponse({
         question,
         context: {
           resume: settings.resume,
           jobDescription: settings.jobDescription,
-          companyInfo: settings.companyInfo,
+          companyInfo: settings.companyInfo + ragContext,
           conversationHistory
         },
         responseMode: settings.responseMode,
@@ -255,6 +291,11 @@ function App() {
 
           // Generate answer score
           generateAnswerScore(question, full, meta);
+
+          // Start coaching for user's answer
+          if (settings.enableCoaching) {
+            coachingRef.current.start();
+          }
         }
       });
 
@@ -327,6 +368,12 @@ FEEDBACK: [one sentence on how to improve]`;
     setTranscript(questionBufferRef.current.trim());
     setPartialTranscript('');
 
+    // Update coaching with current text
+    if (settings.enableCoaching && coachingRef.current.isActive) {
+      const tip = coachingRef.current.update(questionBufferRef.current.trim());
+      setCoachingTip(tip.tip ? tip : null);
+    }
+
     // Reset silence timer - generate response after 2s of silence
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -338,7 +385,7 @@ FEEDBACK: [one sentence on how to improve]`;
         questionBufferRef.current = '';
       }
     }, 2000);
-  }, [generateResponse]);
+  }, [generateResponse, settings.enableCoaching]);
 
   const handlePartial = useCallback((text) => {
     setPartialTranscript(text);
@@ -421,7 +468,9 @@ FEEDBACK: [one sentence on how to improve]`;
     setQuestionType(null);
     setConfidence(null);
     setAnswerScore(null);
+    setCoachingTip(null);
     questionBufferRef.current = '';
+    coachingRef.current.stop();
   };
 
   const handleSaveSettings = async (newSettings) => {
@@ -458,6 +507,8 @@ FEEDBACK: [one sentence on how to improve]`;
 
   const handleEndInterview = () => {
     setMode('stopped');
+    coachingRef.current.stop();
+    setCoachingTip(null);
 
     // Save to history
     const summary = analyticsRef.current.getSummary();
@@ -471,7 +522,15 @@ FEEDBACK: [one sentence on how to improve]`;
         : 'Default'
     });
 
-    setShowAnalytics(true);
+    setShowReportCard(true);
+  };
+
+  const handleOnboardingComplete = (onboardingSettings) => {
+    setShowOnboarding(false);
+    if (Object.keys(onboardingSettings).length > 0) {
+      const newSettings = { ...settings, ...onboardingSettings };
+      handleSaveSettings(newSettings);
+    }
   };
 
   // Apply theme and display settings
@@ -480,6 +539,15 @@ FEEDBACK: [one sentence on how to improve]`;
     '--overlay-opacity': settings.opacity,
     '--font-size': `${settings.fontSize}px`
   };
+
+  // Onboarding screen
+  if (showOnboarding) {
+    return (
+      <div className={`app-container ${themeClass}`} style={containerStyle}>
+        <Onboarding onComplete={handleOnboardingComplete} initialSettings={settings} />
+      </div>
+    );
+  }
 
   // Hidden mode - minimal UI
   if (mode === 'hidden') {
@@ -517,6 +585,7 @@ FEEDBACK: [one sentence on how to improve]`;
         onAnalytics={handleEndInterview}
         onMockInterview={() => setShowMockInterview(true)}
         onHistory={() => setShowHistory(true)}
+        onPrepChecklist={() => setShowPrepChecklist(true)}
         language={settings.language}
       />
 
@@ -563,6 +632,24 @@ FEEDBACK: [one sentence on how to improve]`;
               language={settings.language}
             />
           </motion.div>
+        ) : showReportCard ? (
+          <motion.div key="reportCard" {...pageTransition}>
+            <ReportCard
+              transcriptEntries={transcriptEntries}
+              analytics={analyticsRef.current.getSummary()}
+              llmService={llmRef.current}
+              settings={settings}
+              onClose={() => { setShowReportCard(false); setShowAnalytics(true); }}
+            />
+          </motion.div>
+        ) : showPrepChecklist ? (
+          <motion.div key="prepChecklist" {...pageTransition}>
+            <PrepChecklist
+              settings={settings}
+              llmService={llmRef.current}
+              onClose={() => setShowPrepChecklist(false)}
+            />
+          </motion.div>
         ) : (
           <motion.div key="overlay" {...pageTransition}>
             <Overlay
@@ -580,6 +667,12 @@ FEEDBACK: [one sentence on how to improve]`;
               currentSpeaker={currentSpeaker}
               answerScore={answerScore}
             />
+            {/* Coaching bar */}
+            {coachingTip && coachingTip.tip && (
+              <div className={`coaching-bar coaching-${coachingTip.type}`}>
+                {coachingTip.tip}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

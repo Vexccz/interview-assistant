@@ -1,102 +1,173 @@
-# InterviewAI
+# InterviewAI 🎯
 
-Real-time AI interview assistant with live transcription and smart response generation.
+Real-time AI interview assistant with live transcription, smart response generation, and coaching — all in a sleek always-on-top overlay.
 
-## Features
+> Your secret weapon for acing interviews. Works with OpenAI, Ollama, or any OpenAI-compatible LLM.
+
+## ✨ Features
 
 ### Core
-- **Live Transcription** — Real-time speech-to-text using Web Speech API or Deepgram
-- **AI Response Generation** — Smart suggested responses via any OpenAI-compatible LLM
-- **Question Type Detection** — Automatically detects behavioral, technical, situational questions
-- **STAR Method Formatting** — Auto-formats behavioral answers with Situation/Task/Action/Result
-- **Confidence Scoring** — Shows how well the AI can answer based on available context
+- **Live Transcription** — Real-time speech-to-text with Web Speech API or Deepgram
+- **AI Response Generation** — Instant, context-aware answer suggestions using your resume & job description
+- **Speaker Diarization** — Distinguishes between interviewer and candidate
+- **Always-on-Top Overlay** — Transparent, minimal UI that stays visible during video calls
+- **Multiple Audio Modes** — Mic only, system audio, or both
 
-### v0.2.0 New Features
-- **Speaker Diarization** — Detects who is speaking (interviewer vs user) using audio energy levels
-- **Multi-language Support** — English and Bahasa Malaysia with auto-detection
-- **Audio Recording & Playback** — Records entire interview, playback in Analytics view
-- **Company Research Auto-fetch** — Enter company name, auto-fetches context for LLM
-- **Resume Parser** — Upload PDF/TXT resume, parsed text used as LLM context
-- **Mock Interview Mode** — AI acts as interviewer, generates questions, evaluates your answers
-- **Answer Scoring** — Each response scored 1-10 with improvement feedback
-- **Code Snippets** — Technical questions include syntax-highlighted code examples
-- **Keyboard Shortcuts** — Press `?` or `Ctrl+/` to see all shortcuts
-- **Multiple Interview Profiles** — Save different resume/job/company combos, quick-switch
-- **Interview History** — Past sessions saved with transcript and analytics (max 50, FIFO)
-- **Export PDF** — Export transcript as formatted PDF
-- **Notification Sound** — Subtle chime when AI response is ready (toggleable)
-- **Windows Installer** — Package as .exe with NSIS installer
-- **Auto-update Checker** — Checks GitHub releases for newer versions on startup
-- **Portable Mode** — Run with `--portable` flag to store data in app directory
+### AI-Powered
+- **Real-time Coaching** — Pace monitoring, length feedback, and tips while you speak
+- **Post-Interview Report Card** — Overall score, strengths, weaknesses, and question-by-question breakdown
+- **Interview Prep Checklist** — AI-generated preparation based on job description & company
+- **Answer Scoring** — Each response rated 1-10 with improvement feedback
+- **RAG Mode** — Upload company docs for context-enriched responses
+- **Mock Interviews** — Practice with AI-generated questions and get scored
 
-## Quick Start
+### Tools
+- **Question Bank** — Browse common interview questions by category
+- **PDF Export** — Export full interview transcript as PDF
+- **Interview History** — Review past sessions with analytics
+- **Company Research** — Auto-research company context
+- **Multi-language** — English and more
 
+### Polish
+- **Onboarding Wizard** — 3-step setup for first-time users
+- **Splash Screen** — Branded loading screen on launch
+- **Keyboard Shortcuts** — Full keyboard control (press `?` to see all)
+- **Profiles** — Save different configurations for different roles
+- **Portable Mode** — Run with `--portable` flag for USB deployment
+- **Dark/Light Theme** — Zinc-based dark theme (default) or light mode
+
+## 📸 Screenshots
+
+<!-- Add screenshots here -->
+![Main Overlay](screenshots/overlay.png)
+![Report Card](screenshots/report-card.png)
+![Prep Checklist](screenshots/prep-checklist.png)
+
+## ⬇️ Installation
+
+### Download Installer (Recommended)
+1. Go to [Releases](https://github.com/Vexccz/interview-assistant/releases/latest)
+2. Download the `.exe` installer
+3. Run and install
+
+### Build from Source
 ```bash
-# Install dependencies
+git clone https://github.com/Vexccz/interview-assistant.git
+cd interview-assistant
 npm install
-
-# Run in development
 npm run dev
-
-# Build for production
-npm run build
-
-# Package as Windows .exe installer
-npm run build:exe
 ```
 
-## Keyboard Shortcuts
+### Build Installer
+```bash
+npm run build:exe
+```
+Output will be in the `release/` folder.
+
+## ⚙️ Configuration
+
+### LLM Setup
+InterviewAI works with any OpenAI-compatible API:
+
+| Provider | Base URL | Notes |
+|----------|----------|-------|
+| OpenAI | `https://api.openai.com/v1` | Requires API key |
+| Ollama | `http://localhost:11434/v1` | Free, local, no key needed |
+| LM Studio | `http://localhost:1234/v1` | Free, local |
+| Any compatible | Your endpoint | Custom providers |
+
+### First Launch
+The onboarding wizard will guide you through:
+1. Connecting your LLM
+2. Uploading your resume
+3. You're ready to go!
+
+### Settings
+Access via `Ctrl+,` or the ⚙️ button:
+- **Resume** — Your experience for context
+- **Job Description** — The role you're interviewing for
+- **Company Info** — Company details for tailored responses
+- **Audio Mode** — Mic, system audio, or both
+- **Response Mode** — Concise or detailed answers
+- **STAR Format** — Structure answers using STAR method
+- **RAG Documents** — Upload additional context documents
+
+## ⌨️ Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Shift+Space` | Cycle modes (Start → Pause → Hidden → Start) |
-| `Ctrl+/` or `?` | Show keyboard shortcuts |
-| `Ctrl+S` | Save transcript |
-| `Ctrl+E` | Export transcript as PDF |
-| `Ctrl+M` | Toggle mock interview mode |
-| `Ctrl+H` | View interview history |
-| `Ctrl+,` | Open settings |
+| `Ctrl+,` | Open Settings |
 | `Ctrl+K` | Clear transcript |
+| `Ctrl+S` | Save transcript |
+| `Ctrl+E` | Export PDF |
+| `Ctrl+M` | Mock Interview |
+| `Ctrl+H` | History |
+| `Ctrl+P` | Prep Checklist |
+| `?` | Show all shortcuts |
 | `Escape` | Close current panel |
 
-## Portable Mode
+## 🏗️ Tech Stack
 
-Run the app with the `--portable` flag to store all data (settings, profiles, history) in the app directory instead of AppData:
+- **Electron** — Desktop app framework
+- **React** — UI (via Vite)
+- **Framer Motion** — Animations
+- **Web Speech API** — Browser-native speech recognition
+- **OpenAI-compatible API** — LLM integration
+- **jsPDF** — PDF export
+- **electron-builder** — Windows installer packaging
 
-```bash
-InterviewAI.exe --portable
+## 📁 Project Structure
+
+```
+interview-assistant/
+├── electron/          # Main process (main.js, preload.js, splash.html)
+├── src/
+│   ├── components/    # React components
+│   │   ├── Analytics.jsx
+│   │   ├── Controls.jsx
+│   │   ├── History.jsx
+│   │   ├── MockInterview.jsx
+│   │   ├── Onboarding.jsx
+│   │   ├── Overlay.jsx
+│   │   ├── PrepChecklist.jsx
+│   │   ├── QuestionBank.jsx
+│   │   ├── ReportCard.jsx
+│   │   └── Settings.jsx
+│   ├── services/      # Business logic
+│   │   ├── coaching.js
+│   │   ├── llm.js
+│   │   ├── rag.js
+│   │   ├── stt.js
+│   │   └── ...
+│   ├── styles/        # CSS
+│   ├── App.jsx
+│   └── main.jsx
+├── landing/           # Landing page (deployable to Vercel)
+├── build/             # App icons
+└── package.json
 ```
 
-This is useful for running from a USB drive or shared folder without leaving traces on the host system.
+## 🤝 Contributing
 
-## Configuration
+Contributions are welcome! Here's how:
 
-### LLM Setup
-Supports any OpenAI-compatible API:
-- **OpenAI** — Set API key and base URL `https://api.openai.com/v1`
-- **Ollama** — Click "Use Ollama" button (auto-detects local instance)
-- **DeepSeek, Groq, etc.** — Set appropriate base URL and API key
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes: `git commit -m 'feat: add my feature'`
+4. Push to the branch: `git push origin feature/my-feature`
+5. Open a Pull Request
 
-### Audio
-- **Microphone Only** — Default, captures your mic
-- **System Audio** — Captures desktop audio (interviewer on call)
-- **Both** — Combines mic + system audio
+### Development
+```bash
+npm install
+npm run dev    # Starts Vite + Electron in dev mode
+```
 
-### Profiles
-Save multiple interview profiles in Settings → Profiles tab. Each profile stores:
-- Resume text
-- Job description
-- Company name & info
+## 📄 License
 
-Quick-switch between profiles for different job applications.
+MIT License — see [LICENSE](LICENSE) for details.
 
-## Tech Stack
-- Electron 33
-- React 18 + Vite 6
-- Framer Motion
-- Web Speech API / Deepgram
-- jsPDF for PDF export
-- electron-builder for packaging
+---
 
-## License
-MIT
+**Made with ❤️ for job seekers everywhere.**

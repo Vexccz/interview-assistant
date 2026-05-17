@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { t } from '../services/i18n';
 
-function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMinimize, onClear, onSaveTranscript, onExportPdf, onQuestionBank, onAnalytics, onMockInterview, onHistory, language }) {
+function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMinimize, onClear, onSaveTranscript, onExportPdf, onQuestionBank, onAnalytics, onMockInterview, onHistory, onPrepChecklist, language }) {
   const getModeLabel = () => {
     switch (mode) {
       case 'listening': return t('listening', language);
@@ -42,6 +42,9 @@ function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMini
         </button>
         <button className="btn-icon" onClick={onMockInterview} title="Mock Interview (Ctrl+M)">
           🎭
+        </button>
+        <button className="btn-icon" onClick={onPrepChecklist} title="Prep Checklist (Ctrl+P)">
+          📝
         </button>
         <button className="btn-icon" onClick={onQuestionBank} title={t('questionBank', language)}>
           📋

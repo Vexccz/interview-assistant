@@ -11,6 +11,27 @@ if (isPortable) {
 
 const store = new Store();
 let mainWindow = null;
+let splashWindow = null;
+
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 300,
+    height: 350,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    center: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  splashWindow.loadFile(path.join(__dirname, 'splash.html'));
+  splashWindow.on('closed', () => { splashWindow = null; });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -21,6 +42,8 @@ function createWindow() {
     alwaysOnTop: true,
     resizable: true,
     skipTaskbar: false,
+    show: false,
+    icon: path.join(__dirname, '..', 'build', 'icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -39,12 +62,23 @@ function createWindow() {
   // Make window draggable
   mainWindow.setMovable(true);
 
+  // Show main window and close splash after ready
+  mainWindow.once('ready-to-show', () => {
+    setTimeout(() => {
+      if (splashWindow) {
+        splashWindow.close();
+      }
+      mainWindow.show();
+    }, 2000);
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 }
 
 app.whenReady().then(() => {
+  createSplashWindow();
   createWindow();
 
   // Global shortcut: Ctrl+Shift+Space to cycle modes
