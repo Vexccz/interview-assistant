@@ -1,10 +1,10 @@
-# InterviewAI 🎯
+# InterviewAI 
 
 Real-time AI interview assistant with live transcription, smart response generation, and coaching — all in a sleek always-on-top overlay.
 
 > Your secret weapon for acing interviews. Works with OpenAI, Ollama, or any OpenAI-compatible LLM.
 
-## ✨ Features
+##  Features
 
 ### Core
 - **Live Transcription** — Real-time speech-to-text with Web Speech API or Deepgram
@@ -36,14 +36,14 @@ Real-time AI interview assistant with live transcription, smart response generat
 - **Portable Mode** — Run with `--portable` flag for USB deployment
 - **Dark/Light Theme** — Zinc-based dark theme (default) or light mode
 
-## 📸 Screenshots
+## Screenshots
 
 <!-- Add screenshots here -->
 ![Main Overlay](screenshots/overlay.png)
 ![Report Card](screenshots/report-card.png)
 ![Prep Checklist](screenshots/prep-checklist.png)
 
-## ⬇️ Installation
+##  Installation
 
 ### Download Installer (Recommended)
 1. Go to [Releases](https://github.com/Vexccz/interview-assistant/releases/latest)
@@ -64,7 +64,7 @@ npm run build:exe
 ```
 Output will be in the `release/` folder.
 
-## ⚙️ Configuration
+##  Configuration
 
 ### LLM Setup
 InterviewAI works with any OpenAI-compatible API:
@@ -117,7 +117,7 @@ Access via `Ctrl+,` or the ⚙️ button:
 - **jsPDF** — PDF export
 - **electron-builder** — Windows installer packaging
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 interview-assistant/
@@ -148,7 +148,7 @@ interview-assistant/
 └── package.json
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Here's how:
 
@@ -164,10 +164,9 @@ npm install
 npm run dev    # Starts Vite + Electron in dev mode
 ```
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Made with ❤️ for job seekers everywhere.**
