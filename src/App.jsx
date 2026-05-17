@@ -12,6 +12,10 @@ import UpdateBanner from './components/UpdateBanner';
 import Onboarding from './components/Onboarding';
 import ReportCard from './components/ReportCard';
 import PrepChecklist from './components/PrepChecklist';
+import SalaryNegotiation from './components/SalaryNegotiation';
+import UsageDashboard from './components/UsageDashboard';
+import PaymentPage from './components/PaymentPage';
+import UpgradeModal from './components/UpgradeModal';
 import { SpeechToText } from './services/stt';
 import { LLMService } from './services/llm';
 import { AnalyticsService } from './services/analytics';
@@ -23,6 +27,11 @@ import { HistoryService } from './services/history';
 import { ProfilesService } from './services/profiles';
 import { PdfExportService } from './services/pdfExport';
 import { CoachingService } from './services/coaching';
+import { ScreenDetectorService } from './services/screenDetector';
+import { EyeContactService } from './services/eyeContact';
+import { VoiceAnalysisService } from './services/voiceAnalysis';
+import { MeetingDetectorService } from './services/meetingDetector';
+import { SubscriptionService } from './services/subscription';
 import ragService from './services/rag';
 import { t } from './services/i18n';
 
@@ -48,7 +57,11 @@ const DEFAULT_SETTINGS = {
   enableNotificationSound: true,
   activeProfileId: null,
   enableRAG: false,
-  enableCoaching: true
+  enableCoaching: true,
+  enableEyeContact: false,
+  enableVoiceAnalysis: false,
+  stripePublishableKey: '',
+  stripeCheckoutUrl: ''
 };
 
 const pageTransition = {
@@ -69,6 +82,14 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showReportCard, setShowReportCard] = useState(false);
   const [showPrepChecklist, setShowPrepChecklist] = useState(false);
+  const [showSalaryNegotiation, setShowSalaryNegotiation] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [meetingApp, setMeetingApp] = useState(null);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [eyeContactWarning, setEyeContactWarning] = useState(null);
+  const [voiceCoaching, setVoiceCoaching] = useState(null);
   const [transcript, setTranscript] = useState('');
   const [partialTranscript, setPartialTranscript] = useState('');
   const [response, setResponse] = useState('');
@@ -91,6 +112,10 @@ function App() {
   const diarizationRef = useRef(new DiarizationService());
   const notificationRef = useRef(new NotificationSoundService());
   const coachingRef = useRef(new CoachingService());
+  const screenDetectorRef = useRef(new ScreenDetectorService());
+  const eyeContactRef = useRef(new EyeContactService());
+  const voiceAnalysisRef = useRef(new VoiceAnalysisService());
+  const meetingDetectorRef = useRef(new MeetingDetectorService());
   const questionBufferRef = useRef('');
   const silenceTimerRef = useRef(null);
   const questionTimerRef = useRef(null);
@@ -103,6 +128,27 @@ function App() {
     if (!onboardingDone) {
       setShowOnboarding(true);
     }
+  }, []);
+
+  // Start screen detector and meeting detector on mount
+  useEffect(() => {
+    screenDetectorRef.current.start();
+    meetingDetectorRef.current.start();
+
+    const unsubScreen = screenDetectorRef.current.onStatusChange((sharing) => {
+      setIsScreenSharing(sharing);
+    });
+
+    const unsubMeeting = meetingDetectorRef.current.onDetection((app) => {
+      setMeetingApp(app);
+    });
+
+    return () => {
+      screenDetectorRef.current.stop();
+      meetingDetectorRef.current.stop();
+      unsubScreen();
+      unsubMeeting();
+    };
   }, []);
 
   // Load settings on mount
@@ -136,6 +182,43 @@ function App() {
   useEffect(() => {
     notificationRef.current.setEnabled(settings.enableNotificationSound !== false);
   }, [settings.enableNotificationSound]);
+
+  // Eye contact service
+  useEffect(() => {
+    if (settings.enableEyeContact && mode === 'listening') {
+      eyeContactRef.current.start();
+      const unsub = eyeContactRef.current.onEvent((event) => {
+        setEyeContactWarning(event.message);
+        if (!event.message) setEyeContactWarning(null);
+      });
+      return () => {
+        unsub();
+        eyeContactRef.current.stop();
+        setEyeContactWarning(null);
+      };
+    } else {
+      eyeContactRef.current.stop();
+      setEyeContactWarning(null);
+    }
+  }, [settings.enableEyeContact, mode]);
+
+  // Voice analysis service
+  useEffect(() => {
+    if (settings.enableVoiceAnalysis && mode === 'listening') {
+      voiceAnalysisRef.current.start();
+      const unsub = voiceAnalysisRef.current.onCoaching((coaching) => {
+        setVoiceCoaching(coaching);
+      });
+      return () => {
+        unsub();
+        voiceAnalysisRef.current.stop();
+        setVoiceCoaching(null);
+      };
+    } else {
+      voiceAnalysisRef.current.stop();
+      setVoiceCoaching(null);
+    }
+  }, [settings.enableVoiceAnalysis, mode]);
 
   // Listen for global shortcut - cycle modes
   useEffect(() => {
@@ -173,6 +256,10 @@ function App() {
         if (showHistory) { setShowHistory(false); return; }
         if (showReportCard) { setShowReportCard(false); return; }
         if (showPrepChecklist) { setShowPrepChecklist(false); return; }
+        if (showSalaryNegotiation) { setShowSalaryNegotiation(false); return; }
+        if (showDashboard) { setShowDashboard(false); return; }
+        if (showPayment) { setShowPayment(false); return; }
+        if (showUpgradeModal) { setShowUpgradeModal(false); return; }
         return;
       }
 
@@ -215,7 +302,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showShortcuts, showSettings, showQuestionBank, showAnalytics, showMockInterview, showHistory, showReportCard, showPrepChecklist]);
+  }, [showShortcuts, showSettings, showQuestionBank, showAnalytics, showMockInterview, showHistory, showReportCard, showPrepChecklist, showSalaryNegotiation, showDashboard, showPayment, showUpgradeModal]);
 
   // Question timer
   useEffect(() => {
@@ -368,6 +455,12 @@ FEEDBACK: [one sentence on how to improve]`;
     setTranscript(questionBufferRef.current.trim());
     setPartialTranscript('');
 
+    // Update voice analysis word count
+    if (settings.enableVoiceAnalysis) {
+      const words = questionBufferRef.current.trim().split(/\s+/).filter(w => w.length > 0);
+      voiceAnalysisRef.current.updateWordCount(words.length);
+    }
+
     // Update coaching with current text
     if (settings.enableCoaching && coachingRef.current.isActive) {
       const tip = coachingRef.current.update(questionBufferRef.current.trim());
@@ -385,7 +478,7 @@ FEEDBACK: [one sentence on how to improve]`;
         questionBufferRef.current = '';
       }
     }, 2000);
-  }, [generateResponse, settings.enableCoaching]);
+  }, [generateResponse, settings.enableCoaching, settings.enableVoiceAnalysis]);
 
   const handlePartial = useCallback((text) => {
     setPartialTranscript(text);
@@ -454,7 +547,12 @@ FEEDBACK: [one sentence on how to improve]`;
   };
 
   const handleToggleListening = () => {
+    // Check subscription limit before starting
     if (mode === 'stopped' || mode === 'paused' || mode === 'hidden') {
+      if (mode === 'stopped' && !SubscriptionService.canStartInterview()) {
+        setShowUpgradeModal(true);
+        return;
+      }
       setMode('listening');
     } else {
       setMode('paused');
@@ -509,6 +607,11 @@ FEEDBACK: [one sentence on how to improve]`;
     setMode('stopped');
     coachingRef.current.stop();
     setCoachingTip(null);
+    setEyeContactWarning(null);
+    setVoiceCoaching(null);
+
+    // Record usage for subscription tracking
+    SubscriptionService.recordInterview();
 
     // Save to history
     const summary = analyticsRef.current.getSummary();
@@ -586,7 +689,11 @@ FEEDBACK: [one sentence on how to improve]`;
         onMockInterview={() => setShowMockInterview(true)}
         onHistory={() => setShowHistory(true)}
         onPrepChecklist={() => setShowPrepChecklist(true)}
+        onSalaryNegotiation={() => setShowSalaryNegotiation(true)}
+        onDashboard={() => setShowDashboard(true)}
         language={settings.language}
+        meetingApp={meetingApp}
+        isScreenSharing={isScreenSharing}
       />
 
       <AnimatePresence mode="wait">
@@ -650,6 +757,27 @@ FEEDBACK: [one sentence on how to improve]`;
               onClose={() => setShowPrepChecklist(false)}
             />
           </motion.div>
+        ) : showSalaryNegotiation ? (
+          <motion.div key="salaryNegotiation" {...pageTransition}>
+            <SalaryNegotiation
+              settings={settings}
+              llmService={llmRef.current}
+              onClose={() => setShowSalaryNegotiation(false)}
+            />
+          </motion.div>
+        ) : showDashboard ? (
+          <motion.div key="dashboard" {...pageTransition}>
+            <UsageDashboard
+              onClose={() => setShowDashboard(false)}
+            />
+          </motion.div>
+        ) : showPayment ? (
+          <motion.div key="payment" {...pageTransition}>
+            <PaymentPage
+              onClose={() => setShowPayment(false)}
+              onSuccess={() => {}}
+            />
+          </motion.div>
         ) : (
           <motion.div key="overlay" {...pageTransition}>
             <Overlay
@@ -673,6 +801,18 @@ FEEDBACK: [one sentence on how to improve]`;
                 {coachingTip.tip}
               </div>
             )}
+            {/* Eye contact warning */}
+            {eyeContactWarning && (
+              <div className="coaching-bar coaching-warning eye-contact-bar">
+                {eyeContactWarning}
+              </div>
+            )}
+            {/* Voice coaching */}
+            {voiceCoaching && (
+              <div className={`coaching-bar coaching-${voiceCoaching.type} voice-coaching-bar`}>
+                {voiceCoaching.message}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -681,6 +821,16 @@ FEEDBACK: [one sentence on how to improve]`;
       <AnimatePresence>
         {showShortcuts && (
           <KeyboardShortcuts onClose={() => setShowShortcuts(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Upgrade Modal */}
+      <AnimatePresence>
+        {showUpgradeModal && (
+          <UpgradeModal
+            onClose={() => setShowUpgradeModal(false)}
+            onUpgrade={() => setShowUpgradeModal(false)}
+          />
         )}
       </AnimatePresence>
     </div>

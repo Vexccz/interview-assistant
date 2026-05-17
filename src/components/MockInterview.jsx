@@ -1,17 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MockInterviewService } from '../services/mockInterview';
+import { PersonasService, PERSONAS } from '../services/personas';
 import { t } from '../services/i18n';
 
 function MockInterview({ settings, llmService, onClose, language }) {
-  const [status, setStatus] = useState('idle'); // 'idle' | 'asking' | 'waiting' | 'evaluating'
+  const [status, setStatus] = useState('idle'); // 'idle' | 'persona_select' | 'asking' | 'waiting' | 'evaluating'
   const [currentQuestion, setCurrentQuestion] = useState('');
   const [userAnswer, setUserAnswer] = useState('');
   const [evaluation, setEvaluation] = useState('');
   const [history, setHistory] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState(null);
   const mockRef = useRef(null);
   const recognitionRef = useRef(null);
+  const personasRef = useRef(new PersonasService());
 
   useEffect(() => {
     if (llmService) {
@@ -23,18 +26,32 @@ function MockInterview({ settings, llmService, onClose, language }) {
     };
   }, [llmService]);
 
-  const startInterview = async () => {
+  const selectPersona = () => {
+    setStatus('persona_select');
+  };
+
+  const startWithPersona = async (personaId) => {
+    const persona = personasRef.current.get(personaId);
+    setSelectedPersona(persona);
+    personasRef.current.setActive(personaId);
+    startInterview(persona);
+  };
+
+  const startInterview = async (persona) => {
     if (!mockRef.current) return;
     mockRef.current.start();
     setIsGenerating(true);
     setCurrentQuestion('');
     setStatus('asking');
 
+    const systemPrompt = persona ? persona.systemPrompt : '';
+
     try {
       await mockRef.current.generateFirstQuestion({
         resume: settings.resume,
         jobDescription: settings.jobDescription,
         companyInfo: settings.companyInfo,
+        systemPrompt,
         onChunk: (chunk, full) => setCurrentQuestion(full),
         onDone: (full) => {
           setCurrentQuestion(full);
@@ -112,6 +129,7 @@ function MockInterview({ settings, llmService, onClose, language }) {
         answer,
         resume: settings.resume,
         jobDescription: settings.jobDescription,
+        systemPrompt: selectedPersona?.systemPrompt || '',
         onChunk: (chunk, full) => setEvaluation(full),
         onDone: async (evalText) => {
           setEvaluation(evalText);
@@ -132,6 +150,7 @@ function MockInterview({ settings, llmService, onClose, language }) {
             resume: settings.resume,
             jobDescription: settings.jobDescription,
             companyInfo: settings.companyInfo,
+            systemPrompt: selectedPersona?.systemPrompt || '',
             onChunk: (chunk, full) => setCurrentQuestion(full),
             onDone: (full) => {
               setCurrentQuestion(full);
@@ -154,12 +173,15 @@ function MockInterview({ settings, llmService, onClose, language }) {
     stopListening();
     if (mockRef.current) mockRef.current.stop();
     setStatus('idle');
+    setSelectedPersona(null);
   };
+
+  const personas = Object.values(PERSONAS);
 
   return (
     <div className="panel mock-interview-panel">
       <div className="panel-header">
-        <h2>Mock Interview</h2>
+        <h2>🎭 Mock Interview</h2>
         <button className="btn-icon" onClick={onClose}>✕</button>
       </div>
 
@@ -167,17 +189,46 @@ function MockInterview({ settings, llmService, onClose, language }) {
         {status === 'idle' && (
           <div className="mock-idle">
             <p className="mock-description">
-              AI will act as your interviewer. It generates questions based on your resume and job description, 
-              then evaluates your verbal answers.
+              AI will act as your interviewer. Choose a persona or start with a general interview.
             </p>
-            <button className="btn-save" onClick={startInterview}>
-              Start Mock Interview
+            <button className="btn-save" onClick={selectPersona}>
+              Choose Interviewer Persona
+            </button>
+            <button className="btn-ollama" onClick={() => startInterview(null)} style={{ marginTop: '8px' }}>
+              Quick Start (General)
             </button>
           </div>
         )}
 
-        {status !== 'idle' && (
+        {/* Persona Selection */}
+        {status === 'persona_select' && (
+          <div className="persona-grid">
+            {personas.map(persona => (
+              <div
+                key={persona.id}
+                className="persona-card"
+                onClick={() => startWithPersona(persona.id)}
+              >
+                <span className="persona-icon">{persona.icon}</span>
+                <span className="persona-name">{persona.name}</span>
+                <span className="persona-desc">{persona.description}</span>
+              </div>
+            ))}
+            <button className="btn-cancel" onClick={() => setStatus('idle')} style={{ marginTop: '8px' }}>
+              ← Back
+            </button>
+          </div>
+        )}
+
+        {status !== 'idle' && status !== 'persona_select' && (
           <>
+            {/* Active persona indicator */}
+            {selectedPersona && (
+              <div className="active-persona-badge">
+                {selectedPersona.icon} {selectedPersona.name}
+              </div>
+            )}
+
             {/* Current Question */}
             <div className="mock-section">
               <span className="section-label">🎤 INTERVIEWER</span>

@@ -27,12 +27,12 @@ export class MockInterviewService {
     }
   }
 
-  async generateFirstQuestion({ resume, jobDescription, companyInfo, onChunk, onDone }) {
+  async generateFirstQuestion({ resume, jobDescription, companyInfo, systemPrompt: personaPrompt, onChunk, onDone }) {
     if (!this.llm) return;
 
     this.abortController = new AbortController();
 
-    const systemPrompt = `You are a professional interviewer conducting a job interview. 
+    const defaultPrompt = `You are a professional interviewer conducting a job interview. 
 Your role is to ask relevant interview questions based on the candidate's resume and the job description.
 
 RULES:
@@ -41,7 +41,9 @@ RULES:
 - Mix behavioral, technical, and situational questions
 - Be professional but friendly
 - Keep questions concise and clear
-- Do NOT provide answers, only ask questions
+- Do NOT provide answers, only ask questions`;
+
+    const systemPrompt = `${personaPrompt || defaultPrompt}
 
 ${resume ? `CANDIDATE'S RESUME:\n${resume}\n` : ''}
 ${jobDescription ? `JOB DESCRIPTION:\n${jobDescription}\n` : ''}
@@ -61,7 +63,7 @@ ${companyInfo ? `COMPANY INFO:\n${companyInfo}\n` : ''}`;
     return await this._streamRequest(body, onChunk, onDone);
   }
 
-  async generateFollowUp({ answer, previousQuestions, resume, jobDescription, companyInfo, onChunk, onDone }) {
+  async generateFollowUp({ answer, previousQuestions, resume, jobDescription, companyInfo, systemPrompt: personaPrompt, onChunk, onDone }) {
     if (!this.llm) return;
 
     this.abortController = new AbortController();
@@ -70,7 +72,7 @@ ${companyInfo ? `COMPANY INFO:\n${companyInfo}\n` : ''}`;
       `Q${i + 1}: ${q.question}\nA${i + 1}: ${q.answer || '(no answer)'}`
     ).join('\n\n');
 
-    const systemPrompt = `You are a professional interviewer conducting a job interview.
+    const defaultPrompt = `You are a professional interviewer conducting a job interview.
 Ask a follow-up or new question based on the candidate's previous answers.
 
 RULES:
@@ -79,7 +81,9 @@ RULES:
 - If the answer was good, move to a new topic
 - Mix question types (behavioral, technical, situational)
 - Be professional but friendly
-- Keep questions concise
+- Keep questions concise`;
+
+    const systemPrompt = `${personaPrompt || defaultPrompt}
 
 ${resume ? `CANDIDATE'S RESUME:\n${resume}\n` : ''}
 ${jobDescription ? `JOB DESCRIPTION:\n${jobDescription}\n` : ''}
@@ -102,13 +106,13 @@ ${history}`;
     return await this._streamRequest(body, onChunk, onDone);
   }
 
-  async evaluateAnswer({ question, answer, resume, jobDescription, onChunk, onDone }) {
+  async evaluateAnswer({ question, answer, resume, jobDescription, systemPrompt: personaPrompt, onChunk, onDone }) {
     if (!this.llm) return;
 
     this.abortController = new AbortController();
 
     const systemPrompt = `You are an interview coach evaluating a candidate's answer.
-
+${personaPrompt ? `\nContext: You are evaluating from the perspective of: ${personaPrompt.slice(0, 200)}\n` : ''}
 Score the answer from 1-10 and provide brief feedback.
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:

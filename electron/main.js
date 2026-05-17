@@ -142,11 +142,11 @@ ipcMain.handle('minimize-window', () => {
   }
 });
 
-// Desktop capturer for system audio
+// Desktop capturer for system audio and meeting detection
 ipcMain.handle('get-desktop-sources', async () => {
   try {
     const sources = await desktopCapturer.getSources({
-      types: ['screen'],
+      types: ['screen', 'window'],
       thumbnailSize: { width: 0, height: 0 }
     });
     return sources.map(source => ({

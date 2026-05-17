@@ -5,6 +5,8 @@ import { LLMService } from '../services/llm';
 import { ProfilesService } from '../services/profiles';
 import { ResumeParserService } from '../services/resumeParser';
 import { CompanyResearchService } from '../services/companyResearch';
+import { SubscriptionService } from '../services/subscription';
+import { JobScraperService } from '../services/jobScraper';
 
 function Settings({ settings, onSave, onClose, language }) {
   const [form, setForm] = useState({ ...settings });
@@ -13,7 +15,11 @@ function Settings({ settings, onSave, onClose, language }) {
   const [profiles, setProfiles] = useState(ProfilesService.getProfiles());
   const [newProfileName, setNewProfileName] = useState('');
   const [isResearching, setIsResearching] = useState(false);
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [scrapeStatus, setScrapeStatus] = useState(null);
   const fileInputRef = useRef(null);
+
+  const tierInfo = SubscriptionService.getTierInfo();
 
   const handleChange = (field, value) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -71,6 +77,24 @@ function Settings({ settings, onSave, onClose, language }) {
     setIsResearching(false);
   };
 
+  // LinkedIn job scraping
+  const handleLinkedInScrape = async () => {
+    if (!linkedinUrl.trim()) return;
+    setScrapeStatus('loading');
+    try {
+      const data = await JobScraperService.scrapeJob(linkedinUrl);
+      if (data) {
+        if (data.title) handleChange('jobDescription', `${data.title}\n\n${data.description}`);
+        if (data.company) handleChange('companyName', data.company);
+        setScrapeStatus('success');
+      } else {
+        setScrapeStatus('failed');
+      }
+    } catch (err) {
+      setScrapeStatus('failed');
+    }
+  };
+
   // Profile management
   const handleSaveProfile = () => {
     if (!newProfileName.trim()) return;
@@ -113,7 +137,9 @@ function Settings({ settings, onSave, onClose, language }) {
     { id: 'profiles', label: 'Profiles' },
     { id: 'audio', label: t('tabAudio', language) },
     { id: 'ai', label: t('tabAI', language) },
-    { id: 'display', label: t('tabDisplay', language) }
+    { id: 'display', label: t('tabDisplay', language) },
+    { id: 'jobimport', label: 'Job Import' },
+    { id: 'subscription', label: 'Subscription' }
   ];
 
   return (
@@ -471,6 +497,34 @@ function Settings({ settings, onSave, onClose, language }) {
                   {t('enableBullets', language)}
                 </label>
               </div>
+
+              <div className="settings-section">
+                <h3>COACHING FEATURES</h3>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={form.enableCoaching !== false}
+                    onChange={(e) => handleChange('enableCoaching', e.target.checked)}
+                  />
+                  Real-time speaking coach
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={form.enableEyeContact || false}
+                    onChange={(e) => handleChange('enableEyeContact', e.target.checked)}
+                  />
+                  Eye contact coach (webcam)
+                </label>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={form.enableVoiceAnalysis || false}
+                    onChange={(e) => handleChange('enableVoiceAnalysis', e.target.checked)}
+                  />
+                  Voice tone analysis
+                </label>
+              </div>
             </motion.div>
           )}
 
@@ -529,6 +583,90 @@ function Settings({ settings, onSave, onClose, language }) {
                     {t('light', language)}
                   </label>
                 </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Job Import Tab */}
+          {activeTab === 'jobimport' && (
+            <motion.div key="jobimport" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+              <div className="settings-section">
+                <h3>🔗 LINKEDIN JOB IMPORT</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  Paste a LinkedIn job URL to auto-fill job description and company info.
+                  Note: LinkedIn may block scraping. If it fails, paste the description manually.
+                </p>
+                <label>
+                  LinkedIn Job URL
+                  <div className="company-research-row">
+                    <input
+                      type="text"
+                      value={linkedinUrl}
+                      onChange={(e) => { setLinkedinUrl(e.target.value); setScrapeStatus(null); }}
+                      placeholder="https://www.linkedin.com/jobs/view/..."
+                    />
+                    <button
+                      type="button"
+                      className="btn-ollama"
+                      onClick={handleLinkedInScrape}
+                      disabled={!linkedinUrl.trim() || scrapeStatus === 'loading'}
+                    >
+                      {scrapeStatus === 'loading' ? 'Importing...' : 'Import'}
+                    </button>
+                  </div>
+                </label>
+                {scrapeStatus === 'success' && (
+                  <p style={{ fontSize: '12px', color: '#4ade80', marginTop: '8px' }}>
+                    ✓ Job data imported! Check General tab for details.
+                  </p>
+                )}
+                {scrapeStatus === 'failed' && (
+                  <p style={{ fontSize: '12px', color: '#f87171', marginTop: '8px' }}>
+                    ✗ Could not scrape this URL. LinkedIn may be blocking the request. Please paste the job description manually.
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Subscription Tab */}
+          {activeTab === 'subscription' && (
+            <motion.div key="subscription" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+              <div className="settings-section">
+                <h3>📊 USAGE</h3>
+                <div className="usage-display">
+                  <div className="usage-counter">
+                    <span className="usage-number">{tierInfo.interviewsUsed}</span>
+                    <span className="usage-separator">/</span>
+                    <span className="usage-limit">{tierInfo.isPro ? '∞' : tierInfo.interviewsLimit}</span>
+                    <span className="usage-label">interviews this month</span>
+                  </div>
+                  <div className="tier-badge-display">
+                    {tierInfo.isPro ? '⚡ Pro' : '🆓 Free'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <h3>💳 STRIPE CONFIG</h3>
+                <label>
+                  Publishable Key
+                  <input
+                    type="text"
+                    value={form.stripePublishableKey || ''}
+                    onChange={(e) => handleChange('stripePublishableKey', e.target.value)}
+                    placeholder="pk_live_... or pk_test_..."
+                  />
+                </label>
+                <label>
+                  Checkout URL
+                  <input
+                    type="text"
+                    value={form.stripeCheckoutUrl || ''}
+                    onChange={(e) => handleChange('stripeCheckoutUrl', e.target.value)}
+                    placeholder="https://buy.stripe.com/..."
+                  />
+                </label>
               </div>
             </motion.div>
           )}

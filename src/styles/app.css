@@ -2028,3 +2028,716 @@ body {
   color: var(--text-secondary);
   line-height: 1.4;
 }
+
+/* ============================================
+   Meeting Badge & Screen Share
+   ============================================ */
+.meeting-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  color: #93c5fd;
+  margin-left: 6px;
+}
+
+.screen-share-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  color: #fde047;
+  margin-left: 6px;
+}
+
+/* ============================================
+   Eye Contact & Voice Coaching Bars
+   ============================================ */
+.eye-contact-bar {
+  border-left: 3px solid var(--warning);
+}
+
+.voice-coaching-bar {
+  border-left: 3px solid var(--accent);
+}
+
+/* ============================================
+   Persona Grid
+   ============================================ */
+.persona-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.persona-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.persona-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.persona-icon {
+  font-size: 24px;
+}
+
+.persona-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.persona-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.active-persona-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(167, 139, 250, 0.15);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: #c4b5fd;
+  margin-bottom: 8px;
+}
+
+/* ============================================
+   Salary Negotiation
+   ============================================ */
+.salary-panel {
+  padding: 12px;
+}
+
+.salary-content {
+  padding: 8px 0;
+  overflow-y: auto;
+  max-height: calc(100vh - 180px);
+}
+
+.salary-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.salary-form input {
+  padding: 8px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.salary-scripts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.script-card {
+  padding: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.script-card h4 {
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.script-card p,
+.script-card li {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.script-card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.script-card ul li::before {
+  content: '• ';
+  color: var(--accent);
+}
+
+.tips-card {
+  border-left: 3px solid var(--warning);
+}
+
+.salary-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quick-intro {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.quick-card {
+  padding: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.quick-scenario {
+  font-size: 11px;
+  color: var(--warning);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.quick-response {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ============================================
+   Usage Dashboard
+   ============================================ */
+.dashboard-panel {
+  padding: 12px;
+}
+
+.dashboard-filters {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+}
+
+.filter-btn {
+  padding: 4px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.dashboard-content {
+  padding: 8px 0;
+  overflow-y: auto;
+  max-height: calc(100vh - 180px);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.improvement-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.improvement-badge.positive {
+  background: rgba(34, 197, 94, 0.1);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.improvement-badge.negative {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.chart-container {
+  margin: 12px 0;
+}
+
+.chart-container h3 {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.score-chart {
+  width: 100%;
+  height: 150px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.areas-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.area-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.area-icon {
+  font-size: 20px;
+}
+
+.area-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.area-value {
+  display: block;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ============================================
+   Payment & Upgrade Modal
+   ============================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.upgrade-modal {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 380px;
+  overflow: hidden;
+}
+
+.upgrade-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.upgrade-header h2 {
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.upgrade-body {
+  padding: 16px;
+}
+
+.usage-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: #fde047;
+  margin-bottom: 16px;
+}
+
+.pricing-card {
+  text-align: center;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.pricing-card .price {
+  margin-bottom: 12px;
+}
+
+.pricing-card .amount {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pricing-card .interval {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.feature-list {
+  list-style: none;
+  padding: 0;
+  text-align: left;
+}
+
+.feature-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.feature-list .check {
+  color: var(--success);
+  font-weight: bold;
+}
+
+.upgrade-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btn-upgrade {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #7c3aed, #3b82f6);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-upgrade:hover {
+  opacity: 0.9;
+}
+
+.btn-simulate {
+  padding: 8px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.btn-simulate:hover {
+  background: var(--bg-hover);
+}
+
+/* Payment Page */
+.payment-panel {
+  padding: 12px;
+}
+
+.payment-content {
+  padding: 8px 0;
+  overflow-y: auto;
+  max-height: calc(100vh - 150px);
+}
+
+.pro-active {
+  text-align: center;
+  padding: 20px;
+}
+
+.pro-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  background: linear-gradient(135deg, #7c3aed, #3b82f6);
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.payment-pricing {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.price-display {
+  margin-bottom: 4px;
+}
+
+.price-amount {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.price-interval {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.price-tagline {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.payment-features {
+  padding: 12px 0;
+}
+
+.payment-features h3 {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.payment-features ul {
+  list-style: none;
+  padding: 0;
+}
+
+.payment-features li {
+  padding: 3px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.payment-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.payment-error {
+  font-size: 11px;
+  color: var(--error);
+  margin-top: 8px;
+}
+
+.stripe-config {
+  margin-top: 16px;
+  padding: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.stripe-config summary {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.config-fields {
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.config-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.config-fields input {
+  padding: 6px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+/* ============================================
+   Subscription Usage Display
+   ============================================ */
+.usage-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.usage-counter {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.usage-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.usage-separator {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.usage-limit {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+.usage-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.tier-badge-display {
+  padding: 4px 10px;
+  background: rgba(167, 139, 250, 0.15);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: #c4b5fd;
+  font-weight: 500;
+}
+
+/* ============================================
+   Glassdoor Section
+   ============================================ */
+.glassdoor-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.glassdoor-results {
+  margin-top: 8px;
+}
+
+.glassdoor-question {
+  padding: 8px;
+  margin-bottom: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.glassdoor-q-header {
+  margin-bottom: 4px;
+}
+
+.glassdoor-q-type {
+  font-size: 9px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.glassdoor-q-text {
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.glassdoor-tips {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(234, 179, 8, 0.05);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  border-radius: var(--radius-sm);
+}
+
+.glassdoor-tips h4 {
+  font-size: 11px;
+  color: var(--warning);
+  margin-bottom: 6px;
+}
+
+.glassdoor-tips ul {
+  list-style: none;
+  padding: 0;
+}
+
+.glassdoor-tips li {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 0;
+  line-height: 1.4;
+}
+
+.glassdoor-tips li::before {
+  content: '💡 ';
+}

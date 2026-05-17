@@ -8,6 +8,8 @@ function PrepChecklist({ settings, llmService, onClose }) {
   const [jobDesc, setJobDesc] = useState(settings?.jobDescription || '');
   const [company, setCompany] = useState(settings?.companyName || '');
   const [checkedItems, setCheckedItems] = useState({});
+  const [glassdoorQuestions, setGlassdoorQuestions] = useState(null);
+  const [glassdoorLoading, setGlassdoorLoading] = useState(false);
 
   const generateChecklist = async () => {
     if (!llmService) {
@@ -72,6 +74,59 @@ Generate a comprehensive prep checklist in EXACTLY this JSON format (no markdown
     }
   };
 
+  // Glassdoor-style: Generate likely interview questions for company using LLM
+  const generateGlassdoorQuestions = async () => {
+    if (!llmService || !company.trim()) return;
+    setGlassdoorLoading(true);
+
+    try {
+      const role = jobDesc.match(/(?:title|position|role)[:\s]*([^\n]+)/i)?.[1] || 'the role';
+      const prompt = `Based on your knowledge of ${company} and their interview process, what are the most commonly reported interview questions for ${role} at ${company}?
+
+Generate 10 realistic interview questions that candidates have reported being asked at ${company}. Include a mix of:
+- Behavioral questions specific to ${company}'s culture
+- Technical questions relevant to the role
+- Company-specific questions about their products/values
+
+Respond in EXACTLY this JSON format (no markdown):
+{
+  "company": "${company}",
+  "questions": [
+    {"question": "...", "type": "behavioral|technical|company-specific", "difficulty": "easy|medium|hard"},
+    {"question": "...", "type": "behavioral|technical|company-specific", "difficulty": "easy|medium|hard"}
+  ],
+  "tips": ["tip about interviewing at this company", "another tip"]
+}`;
+
+      const response = await fetch(`${llmService.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(llmService.apiKey ? { 'Authorization': `Bearer ${llmService.apiKey}` } : {})
+        },
+        body: JSON.stringify({
+          model: llmService.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 1500
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = data.choices?.[0]?.message?.content || '';
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          setGlassdoorQuestions(JSON.parse(jsonMatch[0]));
+        }
+      }
+    } catch (err) {
+      console.error('Glassdoor questions generation failed:', err);
+    } finally {
+      setGlassdoorLoading(false);
+    }
+  };
+
   const toggleItem = (section, index) => {
     const key = `${section}-${index}`;
     setCheckedItems(prev => ({ ...prev, [key]: !prev[key] }));
@@ -106,6 +161,15 @@ Generate a comprehensive prep checklist in EXACTLY this JSON format (no markdown
       </ul>
     </div>
   );
+
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case 'easy': return '#4ade80';
+      case 'medium': return '#fbbf24';
+      case 'hard': return '#f87171';
+      default: return '#71717a';
+    }
+  };
 
   return (
     <motion.div
@@ -169,9 +233,47 @@ Generate a comprehensive prep checklist in EXACTLY this JSON format (no markdown
           {renderSection('Questions to Ask Interviewer', '🙋', checklist.questionsToAsk, 'ask')}
           {checklist.dayOfTips && renderSection('Day-of Tips', '💡', checklist.dayOfTips, 'tips')}
 
+          {/* Glassdoor-style section */}
+          <div className="prep-section glassdoor-section">
+            <h3>🏢 Reported Questions at {company || 'Company'}</h3>
+            {!glassdoorQuestions && (
+              <button
+                className="btn-ollama"
+                onClick={generateGlassdoorQuestions}
+                disabled={glassdoorLoading || !company.trim()}
+              >
+                {glassdoorLoading ? 'Generating...' : '🔍 Find Common Questions'}
+              </button>
+            )}
+            {glassdoorQuestions && (
+              <div className="glassdoor-results">
+                {glassdoorQuestions.questions?.map((q, i) => (
+                  <div key={i} className="glassdoor-question">
+                    <div className="glassdoor-q-header">
+                      <span className="glassdoor-q-type" style={{ color: getDifficultyColor(q.difficulty) }}>
+                        [{q.type}] [{q.difficulty}]
+                      </span>
+                    </div>
+                    <p className="glassdoor-q-text">{q.question}</p>
+                  </div>
+                ))}
+                {glassdoorQuestions.tips && glassdoorQuestions.tips.length > 0 && (
+                  <div className="glassdoor-tips">
+                    <h4>💡 Interview Tips for {company}</h4>
+                    <ul>
+                      {glassdoorQuestions.tips.map((tip, i) => (
+                        <li key={i}>{tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <button
             className="btn-secondary"
-            onClick={() => { setChecklist(null); setCheckedItems({}); }}
+            onClick={() => { setChecklist(null); setCheckedItems({}); setGlassdoorQuestions(null); }}
             style={{ marginTop: '12px' }}
           >
             ↺ Regenerate

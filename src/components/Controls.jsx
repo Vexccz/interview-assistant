@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { t } from '../services/i18n';
 
-function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMinimize, onClear, onSaveTranscript, onExportPdf, onQuestionBank, onAnalytics, onMockInterview, onHistory, onPrepChecklist, language }) {
+function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMinimize, onClear, onSaveTranscript, onExportPdf, onQuestionBank, onAnalytics, onMockInterview, onHistory, onPrepChecklist, onSalaryNegotiation, onDashboard, language, meetingApp, isScreenSharing }) {
   const getModeLabel = () => {
     switch (mode) {
       case 'listening': return t('listening', language);
@@ -32,6 +32,18 @@ function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMini
             {getModeLabel()}
           </span>
         )}
+        {/* Meeting app badge */}
+        {meetingApp && (
+          <span className="meeting-badge" title={`${meetingApp.name} detected`}>
+            {meetingApp.icon} {meetingApp.name}
+          </span>
+        )}
+        {/* Screen share indicator */}
+        {isScreenSharing && (
+          <span className="screen-share-badge" title="Screen Share Detected">
+            🖥️ Screen Share
+          </span>
+        )}
       </div>
       <div
         className="controls-right"
@@ -45,6 +57,12 @@ function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMini
         </button>
         <button className="btn-icon" onClick={onPrepChecklist} title="Prep Checklist (Ctrl+P)">
           📝
+        </button>
+        <button className="btn-icon" onClick={onSalaryNegotiation} title="Salary Negotiation">
+          💰
+        </button>
+        <button className="btn-icon" onClick={onDashboard} title="Usage Dashboard">
+          📈
         </button>
         <button className="btn-icon" onClick={onQuestionBank} title={t('questionBank', language)}>
           📋
