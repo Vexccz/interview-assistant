@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 function KeyboardShortcuts({ onClose }) {
   const shortcuts = [
     { key: 'Ctrl+Shift+Space', action: 'Cycle modes (Start → Pause → Hidden → Start)' },
+    { key: 'Ctrl+Shift+H', action: 'Toggle live hints teleprompter' },
     { key: 'Ctrl+/', action: 'Show/hide keyboard shortcuts' },
     { key: '?', action: 'Show/hide keyboard shortcuts' },
     { key: 'Ctrl+S', action: 'Save transcript' },

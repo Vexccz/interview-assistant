@@ -2831,3 +2831,144 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
 }
+
+
+/* ============================================
+   Teleprompter Overlay (Live Hints)
+   ============================================ */
+.teleprompter-overlay {
+  position: fixed;
+  width: 320px;
+  max-width: 90vw;
+  background: rgba(12, 12, 16, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  z-index: 9999;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(139, 92, 246, 0.15);
+  transition: opacity 200ms ease, transform 200ms ease;
+  user-select: none;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.teleprompter-overlay:hover {
+  opacity: 1 !important;
+}
+
+.teleprompter-compact {
+  width: auto;
+  max-width: 80vw;
+  padding: 8px 12px;
+}
+
+.teleprompter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.teleprompter-compact .teleprompter-header {
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+}
+
+.teleprompter-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a78bfa;
+}
+
+.teleprompter-dismiss {
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.teleprompter-dismiss:hover {
+  background: rgba(139, 92, 246, 0.15);
+  color: #fafafa;
+}
+
+.teleprompter-content {
+  color: #e2e8f0;
+}
+
+.teleprompter-hints-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.teleprompter-hint-item {
+  position: relative;
+  padding-left: 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #e4e4e7;
+}
+
+.teleprompter-hint-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+}
+
+.teleprompter-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.teleprompter-keyword {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #c4b5fd;
+  white-space: nowrap;
+}
+
+/* Light theme adjustments */
+.theme-light .teleprompter-overlay {
+  background: rgba(250, 250, 250, 0.95);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #09090b;
+}
+
+.theme-light .teleprompter-content {
+  color: #18181b;
+}
+
+.theme-light .teleprompter-hint-item {
+  color: #27272a;
+}
+
+.theme-light .teleprompter-keyword {
+  background: rgba(139, 92, 246, 0.1);
+  color: #6d28d9;
+}

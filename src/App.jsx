@@ -37,7 +37,9 @@ import { WhisperSTTService } from './services/whisperSTT';
 import { InterviewerAnalyticsService } from './services/interviewerAnalytics';
 import { ComplianceService } from './services/compliance';
 import TeamDashboard from './components/TeamDashboard';
+import TeleprompterOverlay from './components/TeleprompterOverlay';
 import ragService from './services/rag';
+import { LiveHintsService } from './services/liveHints';
 import { t } from './services/i18n';
 
 const DEFAULT_SETTINGS = {
@@ -69,7 +71,12 @@ const DEFAULT_SETTINGS = {
   stripePublishableKey: '',
   stripeCheckoutUrl: '',
   customModelId: '',
-  useCustomModel: false
+  useCustomModel: false,
+  liveHintsMode: 'practice',
+  liveHintsDisplayDuration: 30,
+  liveHintsMaxHints: 4,
+  liveHintsOpacity: 0.4,
+  liveHintsPosition: 'bottom-right'
 };
 
 const pageTransition = {
@@ -117,6 +124,9 @@ function App() {
   const [answerScore, setAnswerScore] = useState(null);
   const [transcriptEntries, setTranscriptEntries] = useState([]);
   const [coachingTip, setCoachingTip] = useState(null);
+  const [responseMode, setResponseMode] = useState('full'); // 'full' | 'liveHints'
+  const [liveHints, setLiveHints] = useState(null);
+  const [teleprompterVisible, setTeleprompterVisible] = useState(true);
 
   const sttRef = useRef(null);
   const llmRef = useRef(null);
@@ -135,6 +145,7 @@ function App() {
   const questionBufferRef = useRef('');
   const silenceTimerRef = useRef(null);
   const questionTimerRef = useRef(null);
+  const liveHintsRef = useRef(null);
 
   const isListening = mode === 'listening';
 
@@ -196,6 +207,27 @@ function App() {
       model
     });
   }, [settings.llmApiKey, settings.llmBaseUrl, settings.llmModel, settings.useCustomModel, settings.customModelId]);
+
+  // Initialize Live Hints service
+  useEffect(() => {
+    liveHintsRef.current = new LiveHintsService({
+      llmService: llmRef.current,
+      settings,
+      onHints: (hints) => setLiveHints(hints),
+      onHintsExpired: () => setLiveHints(null)
+    });
+    return () => {
+      if (liveHintsRef.current) liveHintsRef.current.stop();
+    };
+  }, []);
+
+  // Update live hints service when settings or LLM change
+  useEffect(() => {
+    if (liveHintsRef.current) {
+      liveHintsRef.current.updateSettings(settings);
+      liveHintsRef.current.updateLLMService(llmRef.current);
+    }
+  }, [settings, settings.llmApiKey, settings.llmBaseUrl, settings.llmModel]);
 
   // Update notification sound setting
   useEffect(() => {
@@ -262,6 +294,13 @@ function App() {
       if ((e.key === '?' && !e.ctrlKey && !e.metaKey) || (e.key === '/' && (e.ctrlKey || e.metaKey))) {
         e.preventDefault();
         setShowShortcuts(prev => !prev);
+        return;
+      }
+
+      // Ctrl+Shift+H to toggle teleprompter visibility
+      if (e.shiftKey && (e.ctrlKey || e.metaKey) && (e.key === 'H' || e.key === 'h')) {
+        e.preventDefault();
+        setTeleprompterVisible(prev => !prev);
         return;
       }
 
@@ -499,11 +538,21 @@ FEEDBACK: [one sentence on how to improve]`;
     silenceTimerRef.current = setTimeout(() => {
       const question = questionBufferRef.current.trim();
       if (question) {
-        generateResponse(question);
+        // In liveHints mode, generate hints instead of full response
+        if (responseMode === 'liveHints') {
+          if (liveHintsRef.current) {
+            liveHintsRef.current.generateHints(question);
+          }
+          // Still record the question in transcript/analytics
+          analyticsRef.current.recordQuestion(question, null, null);
+          transcriptRef.current.addEntry(question, '', null);
+        } else {
+          generateResponse(question);
+        }
         questionBufferRef.current = '';
       }
     }, 2000);
-  }, [generateResponse, settings.enableCoaching, settings.enableVoiceAnalysis]);
+  }, [generateResponse, settings.enableCoaching, settings.enableVoiceAnalysis, responseMode]);
 
   const handlePartial = useCallback((text) => {
     setPartialTranscript(text);
@@ -796,6 +845,8 @@ FEEDBACK: [one sentence on how to improve]`;
         language={settings.language}
         meetingApp={meetingApp}
         isScreenSharing={isScreenSharing}
+        responseMode={responseMode}
+        onToggleResponseMode={() => setResponseMode(prev => prev === 'liveHints' ? 'full' : 'liveHints')}
       />
 
       <AnimatePresence mode="wait">
@@ -891,9 +942,9 @@ FEEDBACK: [one sentence on how to improve]`;
             <Overlay
               transcript={transcript}
               partialTranscript={partialTranscript}
-              response={response}
+              response={responseMode === 'liveHints' ? '' : response}
               isListening={isListening}
-              isGenerating={isGenerating}
+              isGenerating={responseMode === 'liveHints' ? false : isGenerating}
               questionType={questionType}
               confidence={confidence}
               questionTimer={questionTimer}
@@ -901,10 +952,22 @@ FEEDBACK: [one sentence on how to improve]`;
               language={settings.language}
               fontSize={settings.fontSize}
               currentSpeaker={currentSpeaker}
-              answerScore={answerScore}
+              answerScore={responseMode === 'liveHints' ? null : answerScore}
               interviewerMood={interviewerMood}
               whisperStatus={whisperStatus}
             />
+            {/* Live Hints Teleprompter (only in liveHints mode) */}
+            {responseMode === 'liveHints' && (
+              <TeleprompterOverlay
+                hints={liveHints}
+                visible={teleprompterVisible}
+                settings={settings}
+                onDismiss={() => {
+                  if (liveHintsRef.current) liveHintsRef.current.dismiss();
+                  setLiveHints(null);
+                }}
+              />
+            )}
             {/* Compliance banner */}
             {complianceBanner && (
               <div className="coaching-bar coaching-warning" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

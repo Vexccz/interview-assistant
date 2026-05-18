@@ -204,6 +204,7 @@ function Settings({ settings, onSave, onClose, language }) {
     { id: 'jobimport', label: 'Job Import' },
     { id: 'integrations', label: 'Integrations' },
     { id: 'compliance', label: 'Compliance' },
+    { id: 'livehints', label: 'Live Suggestions' },
     { id: 'subscription', label: 'Subscription' }
   ];
 
@@ -1025,6 +1026,109 @@ function Settings({ settings, onSave, onClose, language }) {
                     rows={4}
                   />
                 </label>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Live Suggestions Tab */}
+          {activeTab === 'livehints' && (
+            <motion.div key="livehints" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+              <div className="settings-section">
+                <h3>⚡ LIVE SUGGESTIONS</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                  Get real-time talking point hints when the interviewer asks a question. Toggle with Ctrl+Shift+H.
+                </p>
+
+                <label>
+                  Mode
+                  <div className="radio-group">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="liveHintsMode"
+                        value="practice"
+                        checked={(form.liveHintsMode || 'practice') === 'practice'}
+                        onChange={(e) => handleChange('liveHintsMode', e.target.value)}
+                      />
+                      Practice (detailed hints with STAR prompts)
+                    </label>
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="liveHintsMode"
+                        value="live"
+                        checked={form.liveHintsMode === 'live'}
+                        onChange={(e) => handleChange('liveHintsMode', e.target.value)}
+                      />
+                      Live (minimal keywords only, 3-4 words per hint)
+                    </label>
+                  </div>
+                </label>
+              </div>
+
+              <div className="settings-section">
+                <h3>DISPLAY</h3>
+                <label>
+                  Hint Display Duration
+                  <select
+                    value={form.liveHintsDisplayDuration || 30}
+                    onChange={(e) => handleChange('liveHintsDisplayDuration', parseInt(e.target.value))}
+                    style={{ width: '100%', marginTop: '4px', padding: '8px', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '6px', color: '#e2e8f0' }}
+                  >
+                    <option value={15}>15 seconds</option>
+                    <option value={30}>30 seconds</option>
+                    <option value={45}>45 seconds</option>
+                    <option value={60}>60 seconds</option>
+                  </select>
+                </label>
+
+                <label style={{ marginTop: '12px' }}>
+                  Max Hints Per Question
+                  <select
+                    value={form.liveHintsMaxHints || 4}
+                    onChange={(e) => handleChange('liveHintsMaxHints', parseInt(e.target.value))}
+                    style={{ width: '100%', marginTop: '4px', padding: '8px', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '6px', color: '#e2e8f0' }}
+                  >
+                    <option value={3}>3 hints</option>
+                    <option value={4}>4 hints</option>
+                    <option value={5}>5 hints</option>
+                  </select>
+                </label>
+
+                <label style={{ marginTop: '12px' }}>
+                  Opacity
+                  <div className="slider-group">
+                    <input
+                      type="range"
+                      min="10"
+                      max="90"
+                      value={Math.round((form.liveHintsOpacity || 0.4) * 100)}
+                      onChange={(e) => handleChange('liveHintsOpacity', parseInt(e.target.value) / 100)}
+                    />
+                    <span className="slider-value">{Math.round((form.liveHintsOpacity || 0.4) * 100)}%</span>
+                  </div>
+                </label>
+
+                <label style={{ marginTop: '12px' }}>
+                  Position
+                  <select
+                    value={form.liveHintsPosition || 'bottom-right'}
+                    onChange={(e) => handleChange('liveHintsPosition', e.target.value)}
+                    style={{ width: '100%', marginTop: '4px', padding: '8px', background: '#27272a', border: '1px solid #3f3f46', borderRadius: '6px', color: '#e2e8f0' }}
+                  >
+                    <option value="top-left">Top Left</option>
+                    <option value="top-right">Top Right</option>
+                    <option value="bottom-left">Bottom Left</option>
+                    <option value="bottom-right">Bottom Right</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="settings-section">
+                <h3>SHORTCUT</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Toggle teleprompter visibility: <kbd style={{ background: '#27272a', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>Ctrl+Shift+H</kbd>
+                </p>
               </div>
             </motion.div>
           )}

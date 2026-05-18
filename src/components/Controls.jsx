@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { t } from '../services/i18n';
 
-function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMinimize, onClear, onSaveTranscript, onExportPdf, onQuestionBank, onAnalytics, onMockInterview, onHistory, onPrepChecklist, onSalaryNegotiation, onDashboard, onTeamDashboard, onToggleCallRecording, isCallRecording, callRecordingTime, language, meetingApp, isScreenSharing }) {
+function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMinimize, onClear, onSaveTranscript, onExportPdf, onQuestionBank, onAnalytics, onMockInterview, onHistory, onPrepChecklist, onSalaryNegotiation, onDashboard, onTeamDashboard, onToggleCallRecording, isCallRecording, callRecordingTime, language, meetingApp, isScreenSharing, responseMode, onToggleResponseMode }) {
   const getModeLabel = () => {
     switch (mode) {
       case 'listening': return t('listening', language);
@@ -52,6 +52,15 @@ function Controls({ mode, isListening, onToggle, onCycleMode, onSettings, onMini
           style={isCallRecording ? { background: '#dc2626', color: 'white' } : {}}
         >
           {isCallRecording ? `🔴 ${callRecordingTime || 'REC'}` : '📹 Record Call'}
+        </button>
+        {/* Response mode toggle */}
+        <button
+          className={`btn-toggle ${responseMode === 'liveHints' ? 'active' : ''}`}
+          onClick={onToggleResponseMode}
+          title={responseMode === 'liveHints' ? 'Switch to Full Response' : 'Switch to Live Hints'}
+          style={responseMode === 'liveHints' ? { background: '#8b5cf6', color: 'white' } : {}}
+        >
+          {responseMode === 'liveHints' ? '⚡ Hints' : '💬 Full'}
         </button>
       </div>
       <div
