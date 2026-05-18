@@ -5,7 +5,7 @@ import Settings from './components/Settings';
 import Controls from './components/Controls';
 import QuestionBank from './components/QuestionBank';
 import Analytics from './components/Analytics';
-import MockInterview from './components/MockInterview';
+import MockInterviewV2 from './components/MockInterviewV2';
 import History from './components/History';
 import KeyboardShortcuts from './components/KeyboardShortcuts';
 import UpdateBanner from './components/UpdateBanner';
@@ -878,7 +878,7 @@ FEEDBACK: [one sentence on how to improve]`;
           </motion.div>
         ) : showMockInterview ? (
           <motion.div key="mockInterview" {...pageTransition}>
-            <MockInterview
+            <MockInterviewV2
               settings={settings}
               llmService={llmRef.current}
               onClose={() => setShowMockInterview(false)}
