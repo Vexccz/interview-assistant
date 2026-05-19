@@ -92,7 +92,7 @@ Access via `Ctrl+,` or the ⚙️ button:
 - **STAR Format** — Structure answers using STAR method
 - **RAG Documents** — Upload additional context documents
 
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
@@ -107,7 +107,7 @@ Access via `Ctrl+,` or the ⚙️ button:
 | `?` | Show all shortcuts |
 | `Escape` | Close current panel |
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 - **Electron** — Desktop app framework
 - **React** — UI (via Vite)
